@@ -3,6 +3,14 @@
   "provider": "node",
   "steps": {
     "install": {
+      "inputs": [
+        {
+          "local": true,
+          "include": [
+            "."
+          ]
+        }
+      ],
       "commands": [
         "cd examples/backend-node && npm ci"
       ]
