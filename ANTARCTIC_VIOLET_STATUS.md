@@ -1,5 +1,51 @@
 # Antarctic Violet — Project Status
 
+## Итоги сессии 2026-06-20
+
+### Что сделали
+
+- Добавлен тестовый production-путь:
+  - https://example-app-production-e00d.up.railway.app/antarctic-violet
+- Путь `/antarctic-violet` отдаёт ту же React-витрину Antarctic Violet, что и корневой URL.
+- `/antarctic-violet/` канонически редиректит на `/antarctic-violet`, чтобы Vite assets с `base: './'` не запрашивались из вложенного пути.
+- Frontend теперь читает config через `/config.json`, а не `./config.json`, чтобы конфиг стабильно открывался с тестового route.
+- Commit: `a98aac3` (`Add Antarctic Violet test route`).
+- Push в `origin/master` выполнен.
+- Railway автодеплой применился после задержки; ручной Railway CLI был недоступен из-за протухшего OAuth token (`railway login` требуется только для CLI-операций).
+
+### Что проверено на production
+
+- `GET /antarctic-violet` -> HTTP 200, `text/html; charset=UTF-8`.
+- `GET /config.json` -> HTTP 200:
+  - `requiredScopes` = `["user.profile.read"]`;
+  - `diagnostics.awAppIdPresent` = `true`;
+  - `diagnostics.appIdSource` = `"env"`.
+- `GET /health` -> HTTP 200, `{"ok":true}`.
+- `GET /api/fazercards/violet-catalog` -> HTTP 200:
+  - `ok` = `true`;
+  - `matchedIds` содержит 12 товаров:
+    - `apple-tr`;
+    - `apple-us`;
+    - `apple-ru`;
+    - `apple-idr`;
+    - `roblox-gift-card`;
+    - `playstation-gift-card`;
+    - `xbox-gift-card`;
+    - `steam-top-up`;
+    - `pubg`;
+    - `free-fire`;
+    - `telegram-stars`;
+    - `telegram-premium`.
+
+### Локальная проверка перед deploy
+
+- `npm run build` прошёл успешно.
+- Локальный production-сервер на `STATIC_DIR=examples/react/dist` проверен:
+  - `/antarctic-violet` -> HTTP 200;
+  - `/antarctic-violet/` -> HTTP 301 на `/antarctic-violet`;
+  - `/config.json` -> HTTP 200;
+  - `/health` -> HTTP 200.
+
 ## Итоги сессии 2026-06-19
 
 ### Что сделали сегодня
