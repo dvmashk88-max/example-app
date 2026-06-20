@@ -6,9 +6,8 @@
   "icon": "./icon.svg",
   "category": "utilities",
   "requiredScopes": [
-    "userData",
-    "balance",
-    "pay",
-    "receive"
+    "user.profile.read",
+    "accounts.read",
+    "accounts.balances.read"
   ]
 }

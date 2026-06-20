@@ -220,10 +220,15 @@ function resolveStoredAppId(): string | null {
   }
 }
 
-function getParentOrigin(): string {
+function getParentOrigin(insideWallet: boolean): string | null {
   const params = new URLSearchParams(window.location.search);
   const fromParam = params.get('parentOrigin');
   if (fromParam) return fromParam;
+
+  const ancestorOrigins = (window.location as Location & { ancestorOrigins?: DOMStringList }).ancestorOrigins;
+  const fromAncestor = ancestorOrigins?.[0];
+  if (fromAncestor) return fromAncestor;
+
   if (window.parent !== window && document.referrer) {
     try {
       return new URL(document.referrer).origin;
@@ -231,6 +236,7 @@ function getParentOrigin(): string {
       //
     }
   }
+  if (insideWallet) return null;
   return 'https://localhost:3310';
 }
 
@@ -261,6 +267,11 @@ function formatRub(amount: number): string {
   return `${Math.round(amount).toLocaleString('ru-RU')} ₽`;
 }
 
+function maskIdentifier(value: string): string {
+  if (value.length <= 12) return value;
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
+}
+
 function calculateClientPrice(amount: number, categoryId: CategoryId): number {
   return Number((amount * (1 + getCategoryMarkupRate(categoryId))).toFixed(2));
 }
@@ -272,6 +283,7 @@ export function App() {
   const [status, setStatus] = useState<AppStatus>('idle');
   const [session, setSession] = useState<AWSession | null>(null);
   const [user, setUser] = useState<AWUserContext | null>(null);
+  const [sdkError, setSdkError] = useState<string | null>(null);
   const [insideWallet, setInsideWallet] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [appId, setAppId] = useState<string | null>(() => resolveStoredAppId());
@@ -298,8 +310,10 @@ export function App() {
    */
   useEffect(() => {
     let destroyed = false;
-    setInsideWallet(AWSDK.isInsideWallet());
-    addLog(`isInsideWallet: ${AWSDK.isInsideWallet()}`);
+    const detectedInsideWallet = AWSDK.isInsideWallet();
+    setInsideWallet(detectedInsideWallet);
+    setSdkError(null);
+    addLog(`isInsideWallet: ${detectedInsideWallet}`);
 
     if (!appId) {
       addLog('Waiting for appId...', 'warn');
@@ -311,10 +325,20 @@ export function App() {
       if (destroyed) return;
       setConfig(cfg);
 
+      const parentOrigin = getParentOrigin(detectedInsideWallet);
+      if (!parentOrigin) {
+        const message = 'Wallet origin is unavailable. Open from Antarctic Wallet Dev Mode or pass ?parentOrigin=<wallet-origin>.';
+        addLog(message, 'error');
+        setSdkError(message);
+        setStatus('error');
+        return;
+      }
+      addLog(`parentOrigin: ${parentOrigin}`);
+
       const sdk = new AWSDK({
         appId,
         scopes: [...cfg.requiredScopes],
-        parentOrigin: getParentOrigin(),
+        parentOrigin,
         debug: true,
         timeout: 30_000,
         persistSession: true,
@@ -327,10 +351,12 @@ export function App() {
         setStatus('ready');
         setSession(s);
         setUser(s.userContext ?? null);
+        setSdkError(null);
       });
 
       sdk.events.on('sdk.error', ({ code, message }) => {
         addLog(`SDK error: [${code}] ${message}`, 'error');
+        setSdkError(`[${code}] ${message}`);
         setStatus('error');
       });
 
@@ -345,6 +371,7 @@ export function App() {
 
       sdk.events.on('session.expired', () => {
         addLog('Session expired!', 'warn');
+        setSdkError('Wallet session expired. Reopen the app from Antarctic Wallet.');
         setStatus('error');
         setSession(null);
         setUser(null);
@@ -360,7 +387,9 @@ export function App() {
         await sdk.init();
       } catch (error) {
         if (destroyed) return;
-        addLog(`Init failed: ${handleSdkError(error)}`, 'error');
+        const message = handleSdkError(error);
+        addLog(`Init failed: ${message}`, 'error');
+        setSdkError(message);
         setStatus('error');
       }
     })();
@@ -431,6 +460,7 @@ export function App() {
     setConfig(null);
     setSession(null);
     setUser(null);
+    setSdkError(null);
     setStatus('idle');
     setLogs([]);
   }
@@ -452,6 +482,16 @@ export function App() {
   const clientPrice = calculateClientPrice(supplierPrice, selectedCategory);
   const clientPriceRub = clientPrice * USDT_RATE_RUB;
   const canContinue = recipient.trim().length > 0 && selectedProduct !== null;
+  const walletSessionSummary = useMemo(() => {
+    if (sdkError) return sdkError;
+    if (!session) return 'Awaiting wallet session';
+    const parts = [
+      user?.displayName,
+      user?.walletAddress ? maskIdentifier(user.walletAddress) : null,
+      user?.userId ? `User ${maskIdentifier(user.userId)}` : null,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(' • ') : 'Wallet session active';
+  }, [sdkError, session, user]);
 
   function selectCategory(categoryId: CategoryId) {
     const firstProduct = PRODUCTS.find((product) => product.category === categoryId);
@@ -545,7 +585,7 @@ export function App() {
             <span className="status-label">{status}</span>
           </div>
           <div className="wallet-card__meta">
-            {user?.displayName ?? (session ? 'Wallet session active' : 'Awaiting wallet session')}
+            {walletSessionSummary}
           </div>
           <button className="btn-link" onClick={changeAppId} type="button">
             Change App ID
