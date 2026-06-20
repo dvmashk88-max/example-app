@@ -65,6 +65,7 @@ interface VioletCatalogItem {
 }
 
 const APP_ID_STORAGE_KEY = 'aw-demo:appId';
+const LEGACY_DEMO_APP_ID = 'dev';
 const VIOLET_CATALOG_ENDPOINT =
   'https://example-app-production-e00d.up.railway.app/api/fazercards/violet-catalog';
 
@@ -240,6 +241,27 @@ function getParentOrigin(insideWallet: boolean): string | null {
   return 'https://localhost:3310';
 }
 
+function resolveSdkAppId(configId: string, requestedAppId: string | null, insideWallet: boolean): string {
+  const params = new URLSearchParams(window.location.search);
+  const walletAppId =
+    params.get('walletAppId') ??
+    params.get('awAppId') ??
+    params.get('sdkAppId') ??
+    params.get('registeredAppId') ??
+    params.get('app_id') ??
+    params.get('applicationId') ??
+    params.get('miniAppId');
+  if (walletAppId) return walletAppId;
+
+  const urlAppId = params.get('appId');
+  if (insideWallet) {
+    if (urlAppId && urlAppId !== LEGACY_DEMO_APP_ID) return urlAppId;
+    return configId;
+  }
+
+  return requestedAppId ?? configId;
+}
+
 function handleSdkError(error: unknown): string {
   if (error instanceof AWOperationError) {
     return `Operation error [${error.errorCode}]: ${error.message} (opId: ${error.operationId})`;
@@ -284,6 +306,13 @@ export function App() {
   const [session, setSession] = useState<AWSession | null>(null);
   const [user, setUser] = useState<AWUserContext | null>(null);
   const [sdkError, setSdkError] = useState<string | null>(null);
+  const [sdkDiagnostics, setSdkDiagnostics] = useState({
+    appId: '',
+    requestedAppId: '',
+    origin: '',
+    parentOrigin: '',
+    scopes: [] as string[],
+  });
   const [insideWallet, setInsideWallet] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [appId, setAppId] = useState<string | null>(() => resolveStoredAppId());
@@ -315,7 +344,7 @@ export function App() {
     setSdkError(null);
     addLog(`isInsideWallet: ${detectedInsideWallet}`);
 
-    if (!appId) {
+    if (!appId && !detectedInsideWallet) {
       addLog('Waiting for appId...', 'warn');
       return;
     }
@@ -333,11 +362,23 @@ export function App() {
         setStatus('error');
         return;
       }
+      const sdkAppId = resolveSdkAppId(cfg.id, appId, detectedInsideWallet);
+      const scopes = [...cfg.requiredScopes];
+      setSdkDiagnostics({
+        appId: sdkAppId,
+        requestedAppId: appId ?? '',
+        origin: window.location.origin,
+        parentOrigin,
+        scopes,
+      });
+      addLog(`SDK init appId: ${sdkAppId}`);
+      addLog(`origin: ${window.location.origin}`);
       addLog(`parentOrigin: ${parentOrigin}`);
+      addLog(`scopes: ${scopes.join(', ')}`);
 
       const sdk = new AWSDK({
-        appId,
-        scopes: [...cfg.requiredScopes],
+        appId: sdkAppId,
+        scopes,
         parentOrigin,
         debug: true,
         timeout: 30_000,
@@ -402,7 +443,7 @@ export function App() {
   }, [addLog, appId]);
 
   useEffect(() => {
-    if (!appId) return;
+    if (!appId && !insideWallet) return;
     let cancelled = false;
 
     async function loadVioletCatalog() {
@@ -433,7 +474,7 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, [appId]);
+  }, [appId, insideWallet]);
 
   function submitAppId(e: React.FormEvent) {
     e.preventDefault();
@@ -461,6 +502,7 @@ export function App() {
     setSession(null);
     setUser(null);
     setSdkError(null);
+    setSdkDiagnostics({ appId: '', requestedAppId: '', origin: '', parentOrigin: '', scopes: [] });
     setStatus('idle');
     setLogs([]);
   }
@@ -534,7 +576,7 @@ export function App() {
     setOrderStatus('idle');
   }, [selectedDenomination, selectedProductDenominations]);
 
-  if (!appId) {
+  if (!appId && !insideWallet) {
     return (
       <div className="app app--narrow">
         <header className="header">
@@ -586,6 +628,15 @@ export function App() {
           </div>
           <div className="wallet-card__meta">
             {walletSessionSummary}
+          </div>
+          <div className="wallet-card__diagnostics">
+            <span>appId: {sdkDiagnostics.appId || 'pending'}</span>
+            {sdkDiagnostics.requestedAppId && sdkDiagnostics.requestedAppId !== sdkDiagnostics.appId && (
+              <span>URL appId ignored: {sdkDiagnostics.requestedAppId}</span>
+            )}
+            <span>origin: {sdkDiagnostics.origin || window.location.origin}</span>
+            <span>parent: {sdkDiagnostics.parentOrigin || 'pending'}</span>
+            <span>scopes: {sdkDiagnostics.scopes.join(', ') || 'pending'}</span>
           </div>
           <button className="btn-link" onClick={changeAppId} type="button">
             Change App ID

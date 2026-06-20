@@ -233,6 +233,15 @@ button {
   overflow-wrap: anywhere;
 }
 
+.wallet-card__diagnostics {
+  display: grid;
+  gap: 3px;
+  color: #9c96c9;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .category-tabs {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
