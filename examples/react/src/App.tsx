@@ -385,7 +385,7 @@ export function App() {
     }
 
     (async () => {
-      const cfg: AppConfig = await fetch('./config.json').then((r) => r.json());
+      const cfg: AppConfig = await fetch('/config.json').then((r) => r.json());
       if (destroyed) return;
       setConfig(cfg);
 

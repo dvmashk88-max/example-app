@@ -419,6 +419,14 @@ app.post('/api/intents', express.json({ limit: '64kb' }), async (req, res) => {
 });
 
 if (STATIC_DIR) {
+  app.get(/^\/antarctic-violet\/$/, (_req, res) => {
+    res.redirect(301, '/antarctic-violet');
+  });
+
+  app.get(/^\/antarctic-violet$/, (_req, res) => {
+    res.sendFile(path.resolve(STATIC_DIR, 'index.html'));
+  });
+
   app.use(express.static(STATIC_DIR, { extensions: ['html'] }));
 }
 
