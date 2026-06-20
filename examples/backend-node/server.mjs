@@ -23,6 +23,9 @@
  */
 import express from 'express';
 import { createHash, createHmac } from 'node:crypto';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const PORT = Number.parseInt(process.env.PORT ?? '3351', 10);
 const AW_API_BASE = process.env.AW_API_BASE ?? '';
@@ -31,7 +34,13 @@ const AW_API_SECRET = process.env.AW_API_SECRET ?? '';
 const FAZERCARDS_API_BASE = process.env.FAZERCARDS_API_BASE ?? '';
 const FAZERCARDS_API_KEY = process.env.FAZERCARDS_API_KEY ?? '';
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN ?? '*';
-const STATIC_DIR = process.env.STATIC_DIR ?? '';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const STATIC_DIR_CANDIDATES = [
+  process.env.STATIC_DIR,
+  path.resolve(__dirname, '../react/dist'),
+  path.resolve(process.cwd(), 'examples/react/dist'),
+].filter(Boolean);
+const STATIC_DIR = STATIC_DIR_CANDIDATES.find((dir) => existsSync(path.join(dir, 'index.html'))) ?? '';
 
 const VALID_TYPES = new Set(['pay', 'receive', 'scopes']);
 
