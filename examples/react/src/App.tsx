@@ -73,12 +73,13 @@ const AW_SDK_SESSION_STORAGE_PREFIX = 'aw-sdk:session:';
 const AW_SDK_STORAGE_PREFIX = 'aw-sdk:';
 const VIOLET_CATALOG_ENDPOINT =
   'https://example-app-production-e00d.up.railway.app/api/fazercards/violet-catalog';
+const APP_DISPLAY_NAME = 'Маркет цифровых товаров';
 
 const CATEGORIES: Category[] = [
-  { id: 'gift-cards', name: 'Apple', subtitle: 'Regional gift cards' },
-  { id: 'steam', name: 'Steam', subtitle: 'Wallet top-ups' },
-  { id: 'game-top-up', name: 'Games', subtitle: 'Player balance' },
-  { id: 'telegram', name: 'Telegram', subtitle: 'Stars and Premium' },
+  { id: 'gift-cards', name: 'Apple', subtitle: 'Подарочные карты' },
+  { id: 'steam', name: 'Steam', subtitle: 'Пополнение кошелька' },
+  { id: 'game-top-up', name: 'Игры', subtitle: 'Баланс игрока' },
+  { id: 'telegram', name: 'Telegram', subtitle: 'Stars и Premium' },
 ];
 
 const USDT_RATE_RUB = 90;
@@ -88,79 +89,79 @@ const PRODUCTS: Product[] = [
     id: 'apple-tr',
     category: 'gift-cards',
     name: 'Apple TR',
-    description: 'Apple gift card mock code for the TR storefront.',
+    description: 'Подарочная карта Apple для региона TR.',
     denominations: [5, 10, 25, 50],
-    inputLabel: 'Delivery note',
-    inputPlaceholder: 'email or note',
+    inputLabel: 'Данные для доставки',
+    inputPlaceholder: 'email или комментарий',
     accent: 'violet',
   },
   {
     id: 'apple-us',
     category: 'gift-cards',
     name: 'Apple US',
-    description: 'Apple gift card mock code for the US storefront.',
+    description: 'Подарочная карта Apple для региона US.',
     denominations: [10, 25, 50, 100],
-    inputLabel: 'Delivery note',
-    inputPlaceholder: 'email or note',
+    inputLabel: 'Данные для доставки',
+    inputPlaceholder: 'email или комментарий',
     accent: 'blue',
   },
   {
     id: 'apple-ru',
     category: 'gift-cards',
     name: 'Apple RU',
-    description: 'Apple gift card mock code for the RU storefront.',
+    description: 'Подарочная карта Apple для региона RU.',
     denominations: [5, 10, 25, 50],
-    inputLabel: 'Delivery note',
-    inputPlaceholder: 'email or note',
+    inputLabel: 'Данные для доставки',
+    inputPlaceholder: 'email или комментарий',
     accent: 'silver',
   },
   {
     id: 'apple-idr',
     category: 'gift-cards',
     name: 'Apple IDR',
-    description: 'Apple gift card mock code for the Indonesian storefront.',
+    description: 'Подарочная карта Apple для региона IDR.',
     denominations: [5, 10, 20],
-    inputLabel: 'Delivery note',
-    inputPlaceholder: 'email or note',
+    inputLabel: 'Данные для доставки',
+    inputPlaceholder: 'email или комментарий',
     accent: 'cyan',
   },
   {
     id: 'roblox-gift-card',
     category: 'gift-cards',
-    name: 'Roblox Gift Card',
-    description: 'Roblox balance code preview for gifts and purchases.',
+    name: 'Подарочная карта Roblox',
+    description: 'Код пополнения Roblox для подарков и покупок.',
     denominations: [10, 25, 50],
-    inputLabel: 'Delivery note',
-    inputPlaceholder: 'email or note',
+    inputLabel: 'Данные для доставки',
+    inputPlaceholder: 'email или комментарий',
     accent: 'pink',
   },
   {
     id: 'playstation-gift-card',
     category: 'gift-cards',
-    name: 'PlayStation Gift Card',
-    description: 'PlayStation Store code preview.',
+    name: 'Подарочная карта PlayStation',
+    description: 'Код пополнения PlayStation Store.',
     denominations: [10, 25, 50],
-    inputLabel: 'Delivery note',
-    inputPlaceholder: 'email or note',
+    inputLabel: 'Данные для доставки',
+    inputPlaceholder: 'email или комментарий',
     accent: 'blue',
   },
   {
     id: 'xbox-gift-card',
     category: 'gift-cards',
-    name: 'Xbox Gift Card',
-    description: 'Xbox wallet card preview.',
+    name: 'Подарочная карта Xbox',
+    description: 'Подарочная карта для кошелька Xbox.',
     denominations: [10, 25, 50],
-    inputLabel: 'Delivery note',
-    inputPlaceholder: 'email or note',
+    inputLabel: 'Данные для доставки',
+    inputPlaceholder: 'email или комментарий',
     accent: 'green',
   },
   {
     id: 'steam-top-up',
     category: 'steam',
-    name: 'Steam Top-Up',
-    description: 'Wallet balance refill preview for Steam accounts.',
+    name: 'Пополнение Steam',
+    description: 'Пополнение баланса кошелька Steam.',
     denominations: [5, 10, 20, 50, 100],
-    inputLabel: 'Steam login',
+    inputLabel: 'Логин Steam',
     inputPlaceholder: 'steam_login',
     accent: 'cyan',
   },
@@ -168,29 +169,29 @@ const PRODUCTS: Product[] = [
     id: 'pubg',
     category: 'game-top-up',
     name: 'PUBG',
-    description: 'Mock UC top-up flow for PUBG players.',
+    description: 'Пополнение UC для аккаунта PUBG.',
     denominations: [5, 10, 25, 50],
-    inputLabel: 'Player ID',
-    inputPlaceholder: 'player ID',
+    inputLabel: 'ID игрока',
+    inputPlaceholder: 'ID игрока',
     accent: 'gold',
   },
   {
     id: 'free-fire',
     category: 'game-top-up',
     name: 'Free Fire',
-    description: 'Mock diamond top-up flow for Free Fire accounts.',
+    description: 'Пополнение алмазов для аккаунта Free Fire.',
     denominations: [2, 5, 10, 25],
-    inputLabel: 'Player ID',
-    inputPlaceholder: 'player ID',
+    inputLabel: 'ID игрока',
+    inputPlaceholder: 'ID игрока',
     accent: 'pink',
   },
   {
     id: 'telegram-stars',
     category: 'telegram',
     name: 'Telegram Stars',
-    description: 'Mock Stars package for creators, gifts, and in-app purchases.',
+    description: 'Пакет Stars для подарков, авторов и покупок внутри Telegram.',
     denominations: [2, 5, 10, 25, 50],
-    inputLabel: 'Telegram recipient',
+    inputLabel: 'Получатель в Telegram',
     inputPlaceholder: '@username',
     accent: 'violet',
   },
@@ -198,9 +199,9 @@ const PRODUCTS: Product[] = [
     id: 'telegram-premium',
     category: 'telegram',
     name: 'Telegram Premium',
-    description: 'Premium subscription preview for Telegram accounts.',
+    description: 'Подписка Premium для аккаунта Telegram.',
     denominations: [5, 15, 30],
-    inputLabel: 'Telegram recipient',
+    inputLabel: 'Получатель в Telegram',
     inputPlaceholder: '@username',
     accent: 'blue',
   },
@@ -297,14 +298,43 @@ function clearWalletSdkStorageCache(insideWallet: boolean): string[] {
 
 function handleSdkError(error: unknown): string {
   if (error instanceof AWOperationError) {
-    return `Operation error [${error.errorCode}]: ${error.message} (opId: ${error.operationId})`;
+    return `Ошибка операции [${error.errorCode}]: ${error.message} (opId: ${error.operationId})`;
   }
-  if (error instanceof AWInitError) return `Init error [${error.errorCode}]: ${error.message}`;
-  if (error instanceof AWSessionError) return `Session error [${error.errorCode}]: ${error.message}`;
-  if (error instanceof AWScopeError) return `Scope error [${error.errorCode}]: ${error.message}`;
-  if (error instanceof AWTimeoutError) return `Timeout: ${error.message}`;
+  if (error instanceof AWInitError) return `Ошибка инициализации [${error.errorCode}]: ${error.message}`;
+  if (error instanceof AWSessionError) return `Ошибка сессии [${error.errorCode}]: ${error.message}`;
+  if (error instanceof AWScopeError) return `Ошибка доступа [${error.errorCode}]: ${error.message}`;
+  if (error instanceof AWTimeoutError) return `Превышено время ожидания: ${error.message}`;
   if (error instanceof Error) return error.message;
   return String(error);
+}
+
+function formatStatus(status: AppStatus): string {
+  const labels: Record<AppStatus, string> = {
+    idle: 'ожидание',
+    connecting: 'подключение',
+    ready: 'готово',
+    error: 'ошибка',
+  };
+  return labels[status];
+}
+
+function formatAppIdSource(source: 'env' | 'fallback' | 'missing'): string {
+  const labels: Record<'env' | 'fallback' | 'missing', string> = {
+    env: 'переменная окружения',
+    fallback: 'конфиг',
+    missing: 'не найден',
+  };
+  return labels[source];
+}
+
+function formatCategoryLabel(categoryId: CategoryId): string {
+  const labels: Record<CategoryId, string> = {
+    telegram: 'Telegram',
+    steam: 'Steam',
+    'gift-cards': 'Подарочные карты',
+    'game-top-up': 'Игровые пополнения',
+  };
+  return labels[categoryId];
 }
 
 function getCategoryMarkupRate(categoryId: CategoryId): number {
@@ -377,10 +407,10 @@ export function App() {
     const detectedInsideWallet = AWSDK.isInsideWallet();
     setInsideWallet(detectedInsideWallet);
     setSdkError(null);
-    addLog(`isInsideWallet: ${detectedInsideWallet}`);
+    addLog(`Запуск внутри кошелька: ${detectedInsideWallet ? 'да' : 'нет'}`);
 
     if (!appId && !detectedInsideWallet) {
-      addLog('Waiting for appId...', 'warn');
+      addLog('Ожидается App ID...', 'warn');
       return;
     }
 
@@ -391,7 +421,7 @@ export function App() {
 
       const parentOrigin = getParentOrigin(detectedInsideWallet);
       if (!parentOrigin) {
-        const message = 'Wallet origin is unavailable. Open from Antarctic Wallet Dev Mode or pass ?parentOrigin=<wallet-origin>.';
+        const message = 'Origin кошелька недоступен. Откройте приложение из Antarctic Wallet Dev Mode или передайте ?parentOrigin=<wallet-origin>.';
         addLog(message, 'error');
         setSdkError(message);
         setStatus('error');
@@ -408,9 +438,9 @@ export function App() {
         parentOrigin,
         scopes,
       });
-      addLog(`SDK init appId: ${sdkAppId}`);
-      addLog(`AW_APP_ID found: ${Boolean(cfg.diagnostics?.awAppIdPresent)}`);
-      addLog(`appId source: ${cfg.diagnostics?.appIdSource ?? (cfg.id ? 'fallback' : 'missing')}`);
+      addLog(`Инициализация SDK appId: ${sdkAppId}`);
+      addLog(`AW_APP_ID найден: ${Boolean(cfg.diagnostics?.awAppIdPresent) ? 'да' : 'нет'}`);
+      addLog(`Источник appId: ${formatAppIdSource(cfg.diagnostics?.appIdSource ?? (cfg.id ? 'fallback' : 'missing'))}`);
       addLog(`origin: ${window.location.origin}`);
       addLog(`parentOrigin: ${parentOrigin}`);
       addLog(`scopes: ${scopes.join(', ')}`);
@@ -427,7 +457,7 @@ export function App() {
       sdkRef.current = sdk;
 
       sdk.events.on('sdk.ready', (s: AWSession) => {
-        addLog('SDK ready!', 'success');
+        addLog('SDK готов к работе.', 'success');
         setStatus('ready');
         setSession(s);
         setUser(s.userContext ?? null);
@@ -435,47 +465,47 @@ export function App() {
       });
 
       sdk.events.on('sdk.error', ({ code, message }) => {
-        addLog(`SDK error: [${code}] ${message}`, 'error');
+        addLog(`Ошибка SDK: [${code}] ${message}`, 'error');
         setSdkError(`[${code}] ${message}`);
         setStatus('error');
       });
 
       sdk.events.on('scopes.granted', ({ scopes }) =>
-        addLog(`Scopes granted: ${scopes.join(', ')}`, 'success'),
+        addLog(`Доступы подтверждены: ${scopes.join(', ')}`, 'success'),
       );
 
       sdk.events.on('session.refreshed', ({ sessionToken, expiresAt }) => {
-        addLog(`Session refreshed, expires: ${new Date(expiresAt).toLocaleTimeString()}`);
+        addLog(`Сессия обновлена, действует до ${new Date(expiresAt).toLocaleTimeString()}`);
         setSession((prev) => (prev ? { ...prev, sessionToken, expiresAt } : prev));
       });
 
       sdk.events.on('session.expired', () => {
-        addLog('Session expired!', 'warn');
-        setSdkError('Wallet session expired. Reopen the app from Antarctic Wallet.');
+        addLog('Сессия истекла.', 'warn');
+        setSdkError('Сессия кошелька истекла. Откройте приложение заново из Antarctic Wallet.');
         setStatus('error');
         setSession(null);
         setUser(null);
       });
 
       sdk.events.on('operation.rejected', ({ operationId, reason }) =>
-        addLog(`Operation ${operationId} rejected: ${reason}`, 'warn'),
+        addLog(`Операция ${operationId} отклонена: ${reason}`, 'warn'),
       );
 
       const clearedStorageKeys = clearWalletSdkStorageCache(detectedInsideWallet);
       if (clearedStorageKeys.length > 0) {
-        addLog(`Cleared SDK storage cache: ${clearedStorageKeys.join(', ')}`);
+        addLog(`Кэш SDK очищен: ${clearedStorageKeys.join(', ')}`);
       } else {
-        addLog('No SDK storage cache found to clear.');
+        addLog('Кэш SDK для очистки не найден.');
       }
 
-      addLog('Initializing SDK...');
+      addLog('Инициализация SDK...');
       setStatus('connecting');
       try {
         await sdk.init();
       } catch (error) {
         if (destroyed) return;
         const message = handleSdkError(error);
-        addLog(`Init failed: ${message}`, 'error');
+        addLog(`Инициализация не выполнена: ${message}`, 'error');
         setSdkError(message);
         setStatus('error');
       }
@@ -509,7 +539,7 @@ export function App() {
       } catch (error) {
         if (cancelled) return;
         setVioletCatalog({});
-        setCatalogError(error instanceof Error ? error.message : 'Unable to load FazerCards data.');
+        setCatalogError('не удалось получить актуальный каталог.');
       } finally {
         if (!cancelled) setCatalogLoading(false);
       }
@@ -580,13 +610,13 @@ export function App() {
   const canContinue = recipient.trim().length > 0 && selectedProduct !== null;
   const walletSessionSummary = useMemo(() => {
     if (sdkError) return sdkError;
-    if (!session) return 'Awaiting wallet session';
+    if (!session) return 'Ожидаем подключение кошелька';
     const parts = [
       user?.displayName,
       user?.walletAddress ? maskIdentifier(user.walletAddress) : null,
-      user?.userId ? `User ${maskIdentifier(user.userId)}` : null,
+      user?.userId ? `Пользователь ${maskIdentifier(user.userId)}` : null,
     ].filter(Boolean);
-    return parts.length > 0 ? parts.join(' • ') : 'Wallet session active';
+    return parts.length > 0 ? parts.join(' • ') : 'Сессия кошелька активна';
   }, [sdkError, session, user]);
 
   function selectCategory(categoryId: CategoryId) {
@@ -634,26 +664,26 @@ export function App() {
     return (
       <div className="app app--narrow">
         <header className="header">
-          <h1 className="header__title">Example DApp (React)</h1>
+          <h1 className="header__title">{APP_DISPLAY_NAME}</h1>
           <div className="header__badges">
             <span className={insideWallet ? 'badge -inside' : 'badge -outside'}>
-              {insideWallet ? 'In Wallet' : 'Standalone'}
+              {insideWallet ? 'В кошельке' : 'Отдельный запуск'}
             </span>
           </div>
         </header>
         <section className="panel">
-          <div className="panel__title">Enter App ID</div>
+          <div className="panel__title">Введите ID приложения</div>
           <form onSubmit={submitAppId}>
             <input
               className="input"
               type="text"
               autoFocus
-              placeholder="App ID"
+              placeholder="ID приложения"
               value={appIdInput}
               onChange={(e) => setAppIdInput(e.target.value)}
             />
             <button className="btn -accent" type="submit" disabled={!appIdInput.trim()}>
-              Continue
+              Продолжить
             </button>
           </form>
         </section>
@@ -665,42 +695,42 @@ export function App() {
     <div className="app">
       <header className="violet-header">
         <div>
-          <div className="eyebrow">Antarctic Apps</div>
-          <h1 className="violet-title">{config?.name ?? 'Antarctic Violet'}</h1>
+          <div className="eyebrow">Сервисы Antarctic</div>
+          <h1 className="violet-title">{APP_DISPLAY_NAME}</h1>
           <p className="violet-copy">
-            Premium digital goods storefront prototype for Telegram, Steam, gift cards,
-            and game top-ups.
+            Витрина цифровых товаров для Telegram, Steam, подарочных карт
+            и игровых пополнений внутри Antarctic Wallet.
           </p>
         </div>
         <div className="wallet-card">
           <div className="wallet-card__row">
             <span className={insideWallet ? 'badge -inside' : 'badge -outside'}>
-              {insideWallet ? 'In Wallet' : 'Standalone'}
+              {insideWallet ? 'В кошельке' : 'Отдельный запуск'}
             </span>
             <span className={`status-dot -${status}`} />
-            <span className="status-label">{status}</span>
+            <span className="status-label">{formatStatus(status)}</span>
           </div>
           <div className="wallet-card__meta">
             {walletSessionSummary}
           </div>
           <div className="wallet-card__diagnostics">
-            <span>appId: {sdkDiagnostics.appId || 'pending'}</span>
-            <span>AW_APP_ID: {sdkDiagnostics.awAppIdPresent ? 'found' : 'missing'}</span>
-            <span>source: {sdkDiagnostics.appIdSource}</span>
+            <span>ID приложения: {sdkDiagnostics.appId || 'ожидается'}</span>
+            <span>AW_APP_ID: {sdkDiagnostics.awAppIdPresent ? 'найден' : 'не найден'}</span>
+            <span>Источник: {formatAppIdSource(sdkDiagnostics.appIdSource)}</span>
             {sdkDiagnostics.requestedAppId && sdkDiagnostics.requestedAppId !== sdkDiagnostics.appId && (
-              <span>URL appId ignored: {sdkDiagnostics.requestedAppId}</span>
+              <span>ID приложения из URL проигнорирован: {sdkDiagnostics.requestedAppId}</span>
             )}
-            <span>origin: {sdkDiagnostics.origin || window.location.origin}</span>
-            <span>parent: {sdkDiagnostics.parentOrigin || 'pending'}</span>
-            <span>scopes: {sdkDiagnostics.scopes.join(', ') || 'pending'}</span>
+            <span>Адрес приложения: {sdkDiagnostics.origin || window.location.origin}</span>
+            <span>Адрес кошелька: {sdkDiagnostics.parentOrigin || 'ожидается'}</span>
+            <span>Доступы: {sdkDiagnostics.scopes.join(', ') || 'ожидаются'}</span>
           </div>
           <button className="btn-link" onClick={changeAppId} type="button">
-            Change App ID
+            Изменить ID приложения
           </button>
         </div>
       </header>
 
-      <nav className="category-tabs" aria-label="Product categories">
+      <nav className="category-tabs" aria-label="Категории товаров">
         {CATEGORIES.map((category) => (
           <button
             key={category.id}
@@ -717,18 +747,18 @@ export function App() {
       <main className="storefront">
         <section className="catalog">
           <div className="section-heading">
-            <span>Catalog</span>
+            <span>Каталог</span>
             <strong>
               {Object.keys(violetCatalog).length > 0
-                ? `${visibleProducts.length} products`
-                : `${visibleProducts.length} mock products`}
+                ? `${visibleProducts.length} товаров`
+                : `${visibleProducts.length} товаров в резервном каталоге`}
             </strong>
           </div>
           {(catalogLoading || catalogError) && (
             <div className={`catalog-state ${catalogError ? '-error' : ''}`}>
               {catalogLoading
-                ? 'Syncing FazerCards data for current cards...'
-                : `FazerCards unavailable. Current cards stay in mock fallback. ${catalogError}`}
+                ? 'Синхронизируем актуальные данные FazerCards...'
+                : `FazerCards временно недоступен. Показываем резервный каталог. ${catalogError}`}
             </div>
           )}
           <div className="product-grid">
@@ -749,7 +779,7 @@ export function App() {
                   <span className="product-card__description">{meta?.note ?? product.description}</span>
                   <span className="product-card__footer">
                     <span>от {formatUsdt(denominations[0])}</span>
-                    <span>{meta ? 'Live' : 'Mock'}</span>
+                    <span>{meta ? 'Актуально' : 'Резерв'}</span>
                   </span>
                 </button>
               );
@@ -759,21 +789,21 @@ export function App() {
 
         <aside className="checkout-panel">
           <div className="section-heading">
-            <span>Order</span>
-            <strong>Preview only</strong>
+            <span>Заказ</span>
+            <strong>Предпросмотр</strong>
           </div>
 
           <div className={`selected-product -${selectedProduct.accent}`}>
             <div>
-              <span className="selected-product__label">Selected product</span>
+              <span className="selected-product__label">Выбранный товар</span>
               <strong>{selectedProductMeta?.name ?? selectedProduct.name}</strong>
             </div>
             <span className="selected-product__pill">
-              {selectedProductMeta?.externalId ?? selectedCategory.replace('-', ' ')}
+              {selectedProductMeta?.externalId ?? formatCategoryLabel(selectedCategory)}
             </span>
           </div>
 
-          <label className="field-label">Nominal</label>
+          <label className="field-label">Номинал</label>
           <div className="denomination-grid">
             {selectedProductDenominations.map((amount) => (
               <button
@@ -813,11 +843,11 @@ export function App() {
           </div>
 
           <button className="btn -accent" type="button" disabled={!canContinue} onClick={previewOrder}>
-            Continue
+            Продолжить
           </button>
 
           {orderStatus === 'preview' && (
-            <div className="success-note">Order preview ready. Payment integration is next.</div>
+            <div className="success-note">Предпросмотр заказа готов. Оплата будет выполнена на следующем шаге.</div>
           )}
         </aside>
       </main>

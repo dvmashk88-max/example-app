@@ -1,5 +1,30 @@
 # Antarctic Violet — Project Status
 
+## Audit Report 2026-06-21
+
+### Результаты read-only аудита интеграции Antarctic Wallet SDK
+
+- AWSDK создаётся корректно: один экземпляр за жизненный цикл компонента, cleanup на unmount через `sdk.destroy()`.
+- Scope `user.profile.read` используется корректно: соответствует актуальному SDK-идентификатору `AWScopes.USER_PROFILE_READ`.
+- APP ID приходит из Railway env `AW_APP_ID` через backend-эндпоинт `/config.json`, hardcode отсутствует.
+- Double init отсутствует: в production-сборке React StrictMode не дублирует эффекты; deps `[addLog, appId]` стабильны.
+- Старые appId (`dev`, `antarctic-violet`) в source и bundle не найдены.
+- Старые scopes (`accounts.read`, `accounts.balances.read`) в source и bundle не найдены.
+- Frontend корректно читает `/config.json` по абсолютному пути; backend инжектирует `AW_APP_ID` в ответ.
+- Сравнение с официальными примерами (Angular, Vue) не выявило ошибок; React-реализация корректнее оригиналов (абсолютный fetch, env-override вместо хардкода).
+- **Баг в коде не найден.**
+- **Наиболее вероятная причина ошибки 422** находится на стороне Antarctic Wallet backend или настройках APP ID: SDK делает `postMessage` → wallet shell выполняет `POST /api/v2/sdk/scopes` → backend возвращает 422. Наш код к этому HTTP-вызову прямого отношения не имеет.
+
+### Вопросы для поддержки Antarctic
+
+1. Включён ли scope `user.profile.read` для нашего APP ID? Какие scopes доступны?
+2. Добавлен ли origin `https://example-app-production-e00d.up.railway.app` в whitelist для нашего APP ID?
+3. Требуется ли статус "approved" / "active" для приложения до того, как SDK session заработает?
+4. Что содержит тело 422-ответа — есть ли error code или message?
+5. Нужно ли отдельно регистрировать scopes через developer portal?
+
+---
+
 ## Итоги сессии 2026-06-20
 
 ### Что сделали
@@ -234,3 +259,58 @@ POST https://app.antarcticwallet.com/api/v2/sdk/scopes -> HTTP 422
 3. Тестовый заказ без оплаты.
 4. Подключение оплаты.
 5. Подготовка к модерации Antarctic Apps.
+
+---
+
+## 2026-06-25 — русификация UI и подготовка к модерации
+
+### Что изменено
+- Пользовательский интерфейс React-приложения полностью переведён на русский язык.
+- Видимое название приложения в UI заменено на `Маркет цифровых товаров`.
+- Обновлены пользовательские подписи категорий, товаров, кнопок, статусов, ошибок, placeholder и checkout-блока.
+- HTML-документ React-примера получил `lang="ru"` и русский `<title>`.
+- Проверено, что новая `icon.svg` попадает в production build.
+
+### Что осталось без изменений
+- SDK Antarctic Wallet не изменялся.
+- Express backend не изменялся.
+- Railway, `nixpacks.toml`, маршруты и deployment-настройки не изменялись.
+- `config.json`, `appId`, scopes и env-переменные не изменялись.
+- Endpoint, headers, запросы, ответы и структура FazerCards API не изменялись.
+- Product IDs, внутренние идентификаторы, номиналы и данные, приходящие из FazerCards, не преобразуются.
+
+### Что проверено
+- `npm run build --prefix examples/react` проходит успешно.
+- TypeScript/React build ошибок не показывает.
+- `examples/react/dist/icon.svg` совпадает с `examples/react/public/icon.svg`.
+- Diff запрещённых зон (`config.json`, SDK/package files, backend, Railway/nixpacks) отсутствует.
+
+### Совместимость
+- FazerCards API полностью совместим: русификация затрагивает только пользовательский UI вокруг данных.
+- SDK Antarctic Wallet не изменялся.
+
+---
+
+## Финальная проверка перед модерацией
+
+### Что проверено
+- Локальный production build запущен через Express backend с `STATIC_DIR=examples/react/dist`.
+- Маршруты `/`, `/antarctic-violet`, `/config.json`, `/icon.svg` локально отвечают HTTP 200.
+- UI проверен визуально через Playwright screenshots на desktop и mobile.
+- Новая иконка открывается по `/icon.svg` и `examples/react/dist/icon.svg` совпадает с `examples/react/public/icon.svg`.
+- В UI отображается название `Маркет цифровых товаров`.
+- Русифицированы пользовательские подписи, кнопки, статусы, placeholder, уведомления и ошибки.
+- Каталог FazerCards загружается: endpoint вернул `ok: true`, 12 items и ожидаемые `matchedIds`.
+- Карточки товаров, выбор номинала и checkout-блок отображаются корректно.
+- `npm run build` проходит успешно без ошибок TypeScript/React.
+- Проверен diff запрещённых зон: `config.json`, package files, backend, Railway/nixpacks без изменений.
+
+### Что исправлено
+- Исправлены оставшиеся англоязычные диагностические подписи `App ID`/`Origin` в пользовательском интерфейсе.
+- Других исправлений не потребовалось.
+
+### Готовность
+- Приложение готово к деплою.
+- SDK Antarctic Wallet не изменялся.
+- Совместимость с FazerCards полностью сохранена: API, endpoint, headers, JSON-структура, product IDs, номиналы и данные поставщика не менялись.
+- Приложение готово к отправке на модерацию Antarctic Wallet.
