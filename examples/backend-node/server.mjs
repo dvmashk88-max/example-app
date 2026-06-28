@@ -110,6 +110,60 @@ const VIOLET_PRODUCT_MATCHERS = [
   },
 ];
 
+const APP_STORE_CATEGORY_CURRENCIES = {
+  app_store_itunes_tr: 'TRY',
+  app_store_itunes_us: 'USD',
+  app_store_itunes_ru: 'RUB',
+  app_store_itunes_id: 'IDR',
+};
+const ANTARCTIC_USDT_RATE_RUB = 77.95;
+const APP_STORE_MARKUP_RATE = 0.3;
+const APP_STORE_RUB_RATES = {
+  TRY: 1.65822,
+  USD: 77.0611,
+  RUB: 1,
+  IDR: 0.00429501,
+};
+
+const ORDER_FLOW_BY_SOURCE = {
+  giftcards: {
+    orderFlow: 'code_delivery',
+    orderEndpoint: '/api/v2/giftcards/order',
+    requiredFields: [],
+  },
+  topups: {
+    orderFlow: 'game_balance',
+    orderEndpoint: '/api/v2/topups/order',
+    requiredFields: ['playerId'],
+  },
+  telegram_stars: {
+    orderFlow: 'telegram_stars',
+    orderEndpoint: '/api/v2/telegram/stars/buy',
+    requiredFields: ['telegramUsername'],
+  },
+  telegram_premium: {
+    orderFlow: 'telegram_premium',
+    orderEndpoint: '/api/v2/telegram/premium/buy',
+    requiredFields: ['telegramUsername'],
+  },
+};
+
+const ORDER_FLOW_BY_PRODUCT_ID = {
+  'steam-top-up': {
+    orderFlow: 'steam_balance',
+    orderEndpoint: '/api/v2/steam-topup/order',
+    requiredFields: ['steamLogin'],
+  },
+};
+
+function resolveOrderFlow(productId, source) {
+  return ORDER_FLOW_BY_PRODUCT_ID[productId] ?? ORDER_FLOW_BY_SOURCE[source] ?? {
+    orderFlow: 'code_delivery',
+    orderEndpoint: null,
+    requiredFields: [],
+  };
+}
+
 if (!AW_API_BASE || !AW_API_KEY || !AW_API_SECRET) {
   console.warn(
     '[boot] Missing AW_API_BASE / AW_API_KEY / AW_API_SECRET — /api/intents will return 500 until they are set.',
@@ -211,9 +265,11 @@ async function fetchFazerCardsItems(path) {
 }
 
 function normalizeCatalogItem(productId, source, item) {
+  const orderFlow = resolveOrderFlow(productId, source);
   return {
     productId,
     source,
+    ...orderFlow,
     externalId: item.category_id ?? null,
     categoryId: item.category_id ?? null,
     cardId: item.card_id ?? item.id ?? null,
@@ -231,6 +287,106 @@ function normalizeCatalogItem(productId, source, item) {
   };
 }
 
+function parseGiftCardNominal(offer, expectedCurrency) {
+  const explicitNominal = offer.nominal ?? offer.denomination ?? offer.amount ?? offer.value;
+  const explicitCurrency = offer.currency ?? expectedCurrency;
+  const explicitNumber = Number(explicitNominal);
+  if (Number.isFinite(explicitNumber) && explicitNumber > 0) {
+    return { nominal: explicitNumber, currency: explicitCurrency };
+  }
+
+  const text = [offer.name, offer.card_id, offer.id].filter(Boolean).join(' ');
+  const escapedCurrency = expectedCurrency.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const currencyPattern = new RegExp(`([\\d.,\\s]+)\\s*${escapedCurrency}\\b`, 'i');
+  const matched = text.match(currencyPattern) ?? text.match(/([\d.,\s]+)/);
+  if (!matched) return null;
+
+  const numeric = matched[1].replace(/\s/g, '').replace(',', '.');
+  const nominal = Number(numeric);
+  if (!Number.isFinite(nominal) || nominal <= 0) return null;
+  return { nominal, currency: expectedCurrency };
+}
+
+function calculateAppStoreSalePrice(nominal, currency) {
+  // These are internal store sale prices calculated from manual FX rates and 30% markup. They are not market exchange rates.
+  const baseRub = nominal * APP_STORE_RUB_RATES[currency];
+  const baseUsdt = baseRub / ANTARCTIC_USDT_RATE_RUB;
+  const priceUsdt = roundStorePriceUsdt(baseUsdt * (1 + APP_STORE_MARKUP_RATE));
+  return {
+    priceUsdt,
+    priceRubApprox: Math.round(priceUsdt * ANTARCTIC_USDT_RATE_RUB),
+  };
+}
+
+function roundStorePriceUsdt(priceUsdt) {
+  const ceilToTenth = (value) => Number((Math.ceil((value - Number.EPSILON) * 10) / 10).toFixed(2));
+  if (priceUsdt < 1) {
+    return Math.max(0.5, ceilToTenth(priceUsdt));
+  }
+  if (priceUsdt < 10) {
+    return ceilToTenth(priceUsdt);
+  }
+  return Math.ceil(priceUsdt - Number.EPSILON);
+}
+
+function normalizeAppStoreOffer(categoryId, offer) {
+  const expectedCurrency = APP_STORE_CATEGORY_CURRENCIES[categoryId];
+  const parsed = parseGiftCardNominal(offer, expectedCurrency);
+  if (!parsed) {
+    console.warn('[fazercards] unable to parse App Store gift card nominal', {
+      categoryId,
+      cardId: offer.card_id ?? offer.id ?? null,
+      name: offer.name ?? null,
+    });
+    return null;
+  }
+
+  const salePrice = calculateAppStoreSalePrice(parsed.nominal, parsed.currency);
+  return {
+    cardId: offer.card_id ?? offer.id ?? null,
+    nominal: parsed.nominal,
+    currency: parsed.currency,
+    name: offer.name ?? null,
+    rawPriceUsd: offer.price_usd ?? null,
+    stock: Number.isFinite(Number(offer.stock)) ? Number(offer.stock) : null,
+    minOrderQuantity: Number.isFinite(Number(offer.min_order_quantity))
+      ? Number(offer.min_order_quantity)
+      : null,
+    maxOrderQuantity: Number.isFinite(Number(offer.max_order_quantity))
+      ? Number(offer.max_order_quantity)
+      : null,
+    ...salePrice,
+  };
+}
+
+async function fetchAppStoreOffers(categoryId) {
+  const payload = await fetchFazerCardsJson('/api/v2/giftcards/cards', { category_id: categoryId });
+  const offers = Array.isArray(payload.offers) ? payload.offers : [];
+  return offers
+    .map((offer) => normalizeAppStoreOffer(categoryId, offer))
+    .filter(Boolean)
+    .sort((a, b) => a.nominal - b.nominal);
+}
+
+async function normalizeVioletCatalogItem(productId, source, item) {
+  const normalized = normalizeCatalogItem(productId, source, item);
+  if (source !== 'giftcards' || !APP_STORE_CATEGORY_CURRENCIES[item.category_id]) {
+    return normalized;
+  }
+
+  const offers = await fetchAppStoreOffers(item.category_id);
+  return {
+    ...normalized,
+    offers,
+    denominations: offers.map((offer) => offer.nominal),
+    raw: {
+      ...normalized.raw,
+      currency: APP_STORE_CATEGORY_CURRENCIES[item.category_id],
+      offersEndpoint: '/api/v2/giftcards/cards',
+    },
+  };
+}
+
 function normalizeTelegramStars(payload) {
   const pricePerStar = Number(payload.price_per_star);
   const starPacks = [50, 100, 250, 500].filter(
@@ -239,6 +395,7 @@ function normalizeTelegramStars(payload) {
   return {
     productId: 'telegram-stars',
     source: 'telegram_stars',
+    ...resolveOrderFlow('telegram-stars', 'telegram_stars'),
     externalId: 'telegram_stars',
     categoryId: 'telegram_stars',
     cardId: null,
@@ -263,6 +420,7 @@ function normalizeTelegramPremium(payload) {
   return {
     productId: 'telegram-premium',
     source: 'telegram_premium',
+    ...resolveOrderFlow('telegram-premium', 'telegram_premium'),
     externalId: 'telegram_premium',
     categoryId: 'telegram_premium',
     cardId: null,
@@ -368,7 +526,7 @@ app.get('/api/fazercards/violet-catalog', async (_req, res) => {
     for (const matcher of VIOLET_PRODUCT_MATCHERS) {
       const matched = sourceItems[matcher.source]?.find(matcher.match);
       if (matched) {
-        items.push(normalizeCatalogItem(matcher.productId, matcher.source, matched));
+        items.push(await normalizeVioletCatalogItem(matcher.productId, matcher.source, matched));
       }
     }
 

@@ -1,5 +1,127 @@
 # Antarctic Violet — Project Status
 
+## Итоги сессии 2026-06-28
+
+### Что сделано сегодня
+
+- Исправлено получение реальных App Store / iTunes offers из FazerCards:
+  - категории по-прежнему находятся через `GET /api/v2/giftcards`;
+  - реальные номиналы и SKU/cardId теперь берутся через `GET /api/v2/giftcards/cards?category_id=...`;
+  - endpoint применён для:
+    - `app_store_itunes_tr`;
+    - `app_store_itunes_us`;
+    - `app_store_itunes_ru`;
+    - `app_store_itunes_id`.
+- App Store offers нормализуются в backend в структуру с:
+  - `cardId`;
+  - `nominal`;
+  - `currency`;
+  - `name`;
+  - `rawPriceUsd`;
+  - `stock`;
+  - `minOrderQuantity`;
+  - `maxOrderQuantity`;
+  - `priceUsdt`;
+  - `priceRubApprox`.
+- Номиналы App Store показываются в валюте региона:
+  - TR -> `TRY`;
+  - US -> `USD`;
+  - RU -> `RUB` / `₽`;
+  - ID -> `IDR`.
+- Цена к оплате для App Store считается в `USDT` вручную:
+  - `ANTARCTIC_USDT_RATE_RUB = 77.95`;
+  - `APP_STORE_MARKUP_RATE = 0.30`;
+  - курсы:
+    - `TRY_RUB = 1.65822`;
+    - `USD_RUB = 77.0611`;
+    - `RUB_RUB = 1`;
+    - `IDR_RUB = 0.00429501`;
+  - формула:
+    - `baseRub = nominal * currencyToRub`;
+    - `baseUsdt = baseRub / 77.95`;
+    - `priceUsdt = baseUsdt * 1.30`.
+- Финальная App Store цена округляется только вверх:
+  - `< 1 USDT` -> вверх до ближайших `0.10 USDT`, минимум `0.50 USDT`;
+  - `1 <= priceUsdt < 10` -> вверх до ближайших `0.10 USDT`;
+  - `>= 10 USDT` -> вверх до целого `USDT`;
+  - `priceRubApprox` пересчитывается от уже округлённого `priceUsdt`.
+- Пример проверенного расчёта:
+  - `100 USD` -> `129 USDT`;
+  - примерная цена в рублях считается от `129 * 77.95`.
+- Русифицированы видимые тексты карточек и интерфейса каталога:
+  - убраны английские описания FazerCards вроде `Region`, `Storeable`, `gift cards`, `Codes can be safely stored`, `redeemed later`;
+  - карточки используют локальные русские описания;
+  - UI-тексты переведены: выбор номинала, раскрытие номиналов, статус наличия, итог, получение и т.д.
+- Для App Store в UI:
+  - карточки показывают `от ...` в валюте региона;
+  - рядом показывается количество вариантов;
+  - сначала отображаются популярные номиналы;
+  - полный список раскрывается кнопкой `Показать все номиналы`;
+  - выбранный offer хранит `cardId`, `nominal`, `currency`, `priceUsdt`, `priceRubApprox`.
+- Удалено универсальное e-mail / recipient поле для Gift Cards:
+  - Gift Cards больше не требуют e-mail;
+  - для Gift Cards показывается блок `Как вы получите код`;
+  - текст: код появится прямо на экране заказа после оплаты;
+  - fake-код в preview не генерируется.
+- Добавлены orderFlow формы:
+  - `code_delivery`;
+  - `steam_balance`;
+  - `telegram_stars`;
+  - `telegram_premium`;
+  - `game_balance`.
+- Backend `/api/fazercards/violet-catalog` теперь отдаёт для товаров:
+  - `orderFlow`;
+  - `orderEndpoint`;
+  - `requiredFields`.
+- Текущее соответствие orderFlow:
+  - `giftcards` -> `/api/v2/giftcards/order` -> `code_delivery` -> без полей формы;
+  - `steam-top-up` -> `/api/v2/steam-topup/order` -> `steam_balance` -> `steamLogin`;
+  - `telegram_stars` -> `/api/v2/telegram/stars/buy` -> `telegram_stars` -> `telegramUsername`;
+  - `telegram_premium` -> `/api/v2/telegram/premium/buy` -> `telegram_premium` -> `telegramUsername`;
+  - `topups` -> `/api/v2/topups/order` -> `game_balance` -> `playerId`.
+- Frontend строит форму по `product.orderFlow` / `meta.orderFlow`:
+  - Gift Cards: только информационный блок получения кода;
+  - Steam: поле `Steam логин`;
+  - Telegram Stars/Premium: поле `Username Telegram`;
+  - игровые пополнения: поле `ID игрока / UID`;
+  - кнопка `Продолжить` заблокирована, если обязательное поле не заполнено.
+- Preview заказа показывает:
+  - товар;
+  - номинал / вариант;
+  - сумму к оплате;
+  - способ получения;
+  - введённые данные аккаунта, если они нужны.
+- Добавлен favicon для локального/production frontend, чтобы убрать 404 на `/favicon.ico`.
+
+### Текущий статус
+
+- Сейчас реализована витрина и preview заказа.
+- Реальный checkout/payment ещё не реализован.
+- Реальный FazerCards order ещё не реализован.
+- Backend пока не вызывает:
+  - `POST /api/v2/giftcards/order`;
+  - `POST /api/v2/topups/order`;
+  - `POST /api/v2/telegram/stars/buy`;
+  - `POST /api/v2/telegram/premium/buy`;
+  - `POST /api/v2/steam-topup/order`;
+  - `POST /api/v2/gamekeys/order`.
+- Купленные коды/ключи пока не сохраняются и не показываются, потому что реальная покупка ещё не подключена.
+- Логика Antarctic Wallet SDK, wallet init, auth, scopes, appId, env и moderation-параметры в рамках этих изменений не менялись.
+
+### Локальная проверка
+
+- `GET /api/fazercards/violet-catalog` локально вернул реальные App Store offers с `cardId`, `nominal`, `currency`, `priceUsdt`, `priceRubApprox`.
+- Проверенный UI URL:
+  - `http://localhost:5175/?appId=local-browser-check`
+- Browser/headless проверка:
+  - Gift Cards без e-mail поля;
+  - есть блок `Как вы получите код`;
+  - Steam/Telegram/игры блокируют `Продолжить`, пока обязательное поле пустое;
+  - browser console и network без ошибок приложения.
+- `npm run build` проходил успешно локально.
+
+---
+
 ## Audit Report 2026-06-21
 
 ### Результаты read-only аудита интеграции Antarctic Wallet SDK
@@ -313,4 +435,28 @@ POST https://app.antarcticwallet.com/api/v2/sdk/scopes -> HTTP 422
 - Приложение готово к деплою.
 - SDK Antarctic Wallet не изменялся.
 - Совместимость с FazerCards полностью сохранена: API, endpoint, headers, JSON-структура, product IDs, номиналы и данные поставщика не менялись.
+- Приложение готово к отправке на модерацию Antarctic Wallet.
+
+---
+
+## Production Deployment перед отправкой на модерацию
+
+### Deployment
+- Commit hash: `4390569`
+- GitHub Push выполнен: `master -> origin/master`
+- Railway Deploy выполнен: deployment ID `91734aca-242b-47e4-9b7d-1d0ca3b5af3d`
+- Production URL: `https://example-app-production-e00d.up.railway.app`
+
+### Production проверен
+- `/` отвечает HTTP 200.
+- `/config.json` отвечает HTTP 200 и сохраняет `icon: "./icon.svg"`, `requiredScopes: ["user.profile.read"]`.
+- `/icon.svg` отвечает HTTP 200 и отдаёт новую иконку.
+- `/api/fazercards/violet-catalog` отвечает HTTP 200, `ok: true`, 12 items и ожидаемые `matchedIds`.
+- HTML production содержит `lang="ru"` и title `Маркет цифровых товаров`.
+- Playwright screenshots production desktop/mobile подтверждают отображение русифицированного UI, нового названия и загруженного каталога.
+- Railway build прошёл успешно без ошибок сборки.
+
+### Итог
+- SDK Antarctic Wallet не изменялся.
+- FazerCards API и совместимость полностью сохранены.
 - Приложение готово к отправке на модерацию Antarctic Wallet.

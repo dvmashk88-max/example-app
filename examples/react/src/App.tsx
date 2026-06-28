@@ -37,6 +37,15 @@ interface LogEntry {
 type AppStatus = 'idle' | 'connecting' | 'ready' | 'error';
 type CategoryId = 'telegram' | 'steam' | 'gift-cards' | 'game-top-up';
 type OrderStatus = 'idle' | 'preview';
+type OrderFlow = 'code_delivery' | 'steam_balance' | 'telegram_stars' | 'telegram_premium' | 'game_balance';
+type OrderFieldKey = 'steamLogin' | 'telegramUsername' | 'playerId' | 'serverRegion';
+
+interface OrderFields {
+  steamLogin: string;
+  telegramUsername: string;
+  playerId: string;
+  serverRegion: string;
+}
 
 interface Category {
   id: CategoryId;
@@ -50,8 +59,8 @@ interface Product {
   name: string;
   description: string;
   denominations: number[];
-  inputLabel: string;
-  inputPlaceholder: string;
+  nominalCurrency?: 'TRY' | 'USD' | 'RUB' | 'IDR';
+  orderFlow: OrderFlow;
   accent: string;
 }
 
@@ -66,13 +75,33 @@ interface VioletCatalogItem {
   denominations: number[];
   supplierPrice: string | number | null;
   available: boolean;
+  orderFlow?: OrderFlow;
+  orderEndpoint?: string | null;
+  requiredFields?: OrderFieldKey[];
+  offers?: VioletCatalogOffer[];
+  raw?: Record<string, unknown>;
+}
+
+interface VioletCatalogOffer {
+  cardId: string | null;
+  nominal: number;
+  currency?: 'TRY' | 'USD' | 'RUB' | 'IDR';
+  name: string | null;
+  rawPriceUsd?: string | number | null;
+  stock?: number | null;
+  minOrderQuantity?: number | null;
+  maxOrderQuantity?: number | null;
+  priceUsdt?: number;
+  priceRubApprox?: number;
 }
 
 const APP_ID_STORAGE_KEY = 'aw-demo:appId';
 const AW_SDK_SESSION_STORAGE_PREFIX = 'aw-sdk:session:';
 const AW_SDK_STORAGE_PREFIX = 'aw-sdk:';
 const VIOLET_CATALOG_ENDPOINT =
-  'https://example-app-production-e00d.up.railway.app/api/fazercards/violet-catalog';
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:3351/api/fazercards/violet-catalog'
+    : 'https://example-app-production-e00d.up.railway.app/api/fazercards/violet-catalog';
 const APP_DISPLAY_NAME = 'Маркет цифровых товаров';
 
 const CATEGORIES: Category[] = [
@@ -82,87 +111,95 @@ const CATEGORIES: Category[] = [
   { id: 'telegram', name: 'Telegram', subtitle: 'Stars и Premium' },
 ];
 
-const USDT_RATE_RUB = 90;
+const ANTARCTIC_USDT_RATE_RUB = 77.95;
+const APP_STORE_POPULAR_NOMINALS: Record<string, number[]> = {
+  'apple-tr': [10, 50, 100, 250, 500, 1000],
+  'apple-us': [5, 10, 25, 50, 100, 200],
+  'apple-ru': [500, 1000, 2000, 3000, 5000, 8000],
+  'apple-idr': [150000, 250000, 500000, 1000000],
+};
+const EMPTY_ORDER_FIELDS: OrderFields = {
+  steamLogin: '',
+  telegramUsername: '',
+  playerId: '',
+  serverRegion: '',
+};
 
 const PRODUCTS: Product[] = [
   {
     id: 'apple-tr',
     category: 'gift-cards',
-    name: 'Apple TR',
-    description: 'Подарочная карта Apple для региона TR.',
-    denominations: [5, 10, 25, 50],
-    inputLabel: 'Данные для доставки',
-    inputPlaceholder: 'email или комментарий',
+    name: 'App Store & iTunes TR',
+    description: 'Подарочная карта App Store и iTunes для турецкого аккаунта Apple. Код можно сохранить и активировать позже.',
+    denominations: [],
+    nominalCurrency: 'TRY',
+    orderFlow: 'code_delivery',
     accent: 'violet',
   },
   {
     id: 'apple-us',
     category: 'gift-cards',
-    name: 'Apple US',
-    description: 'Подарочная карта Apple для региона US.',
-    denominations: [10, 25, 50, 100],
-    inputLabel: 'Данные для доставки',
-    inputPlaceholder: 'email или комментарий',
+    name: 'App Store & iTunes US',
+    description: 'Подарочная карта App Store и iTunes для американского аккаунта Apple. Код можно сохранить и активировать позже.',
+    denominations: [],
+    nominalCurrency: 'USD',
+    orderFlow: 'code_delivery',
     accent: 'blue',
   },
   {
     id: 'apple-ru',
     category: 'gift-cards',
-    name: 'Apple RU',
-    description: 'Подарочная карта Apple для региона RU.',
-    denominations: [5, 10, 25, 50],
-    inputLabel: 'Данные для доставки',
-    inputPlaceholder: 'email или комментарий',
+    name: 'App Store & iTunes RU',
+    description: 'Подарочная карта App Store и iTunes для российского аккаунта Apple. Код можно сохранить и активировать позже.',
+    denominations: [],
+    nominalCurrency: 'RUB',
+    orderFlow: 'code_delivery',
     accent: 'silver',
   },
   {
     id: 'apple-idr',
     category: 'gift-cards',
-    name: 'Apple IDR',
-    description: 'Подарочная карта Apple для региона IDR.',
-    denominations: [5, 10, 20],
-    inputLabel: 'Данные для доставки',
-    inputPlaceholder: 'email или комментарий',
+    name: 'App Store & iTunes ID',
+    description: 'Подарочная карта App Store и iTunes для индонезийского аккаунта Apple. Код можно сохранить и активировать позже.',
+    denominations: [],
+    nominalCurrency: 'IDR',
+    orderFlow: 'code_delivery',
     accent: 'cyan',
   },
   {
     id: 'roblox-gift-card',
     category: 'gift-cards',
     name: 'Подарочная карта Roblox',
-    description: 'Код пополнения Roblox для подарков и покупок.',
+    description: 'Подарочная карта Roblox для пополнения баланса аккаунта. Код можно активировать и использовать позже.',
     denominations: [10, 25, 50],
-    inputLabel: 'Данные для доставки',
-    inputPlaceholder: 'email или комментарий',
+    orderFlow: 'code_delivery',
     accent: 'pink',
   },
   {
     id: 'playstation-gift-card',
     category: 'gift-cards',
     name: 'Подарочная карта PlayStation',
-    description: 'Код пополнения PlayStation Store.',
+    description: 'Подарочная карта PlayStation Store для аккаунта указанного региона. Код можно активировать и использовать позже.',
     denominations: [10, 25, 50],
-    inputLabel: 'Данные для доставки',
-    inputPlaceholder: 'email или комментарий',
+    orderFlow: 'code_delivery',
     accent: 'blue',
   },
   {
     id: 'xbox-gift-card',
     category: 'gift-cards',
     name: 'Подарочная карта Xbox',
-    description: 'Подарочная карта для кошелька Xbox.',
+    description: 'Подарочная карта Xbox для аккаунта Microsoft указанного региона. Код можно активировать и использовать позже.',
     denominations: [10, 25, 50],
-    inputLabel: 'Данные для доставки',
-    inputPlaceholder: 'email или комментарий',
+    orderFlow: 'code_delivery',
     accent: 'green',
   },
   {
     id: 'steam-top-up',
     category: 'steam',
     name: 'Пополнение Steam',
-    description: 'Пополнение баланса кошелька Steam.',
+    description: 'Пополнение Steam. Выберите доступный вариант и проверьте регион перед оплатой.',
     denominations: [5, 10, 20, 50, 100],
-    inputLabel: 'Логин Steam',
-    inputPlaceholder: 'steam_login',
+    orderFlow: 'steam_balance',
     accent: 'cyan',
   },
   {
@@ -171,8 +208,7 @@ const PRODUCTS: Product[] = [
     name: 'PUBG',
     description: 'Пополнение UC для аккаунта PUBG.',
     denominations: [5, 10, 25, 50],
-    inputLabel: 'ID игрока',
-    inputPlaceholder: 'ID игрока',
+    orderFlow: 'game_balance',
     accent: 'gold',
   },
   {
@@ -181,28 +217,25 @@ const PRODUCTS: Product[] = [
     name: 'Free Fire',
     description: 'Пополнение алмазов для аккаунта Free Fire.',
     denominations: [2, 5, 10, 25],
-    inputLabel: 'ID игрока',
-    inputPlaceholder: 'ID игрока',
+    orderFlow: 'game_balance',
     accent: 'pink',
   },
   {
     id: 'telegram-stars',
     category: 'telegram',
     name: 'Telegram Stars',
-    description: 'Пакет Stars для подарков, авторов и покупок внутри Telegram.',
+    description: 'Пополнение Telegram Stars. Укажите данные аккаунта и проверьте заказ перед оплатой.',
     denominations: [2, 5, 10, 25, 50],
-    inputLabel: 'Получатель в Telegram',
-    inputPlaceholder: '@username',
+    orderFlow: 'telegram_stars',
     accent: 'violet',
   },
   {
     id: 'telegram-premium',
     category: 'telegram',
     name: 'Telegram Premium',
-    description: 'Подписка Premium для аккаунта Telegram.',
+    description: 'Telegram Premium для выбранного срока. Проверьте данные аккаунта перед оплатой.',
     denominations: [5, 15, 30],
-    inputLabel: 'Получатель в Telegram',
-    inputPlaceholder: '@username',
+    orderFlow: 'telegram_premium',
     accent: 'blue',
   },
 ];
@@ -345,11 +378,21 @@ function getCategoryMarkupRate(categoryId: CategoryId): number {
 }
 
 function formatUsdt(amount: number): string {
-  return `${amount.toFixed(2)} USDT`;
+  return `${Number.isInteger(amount) ? amount.toString() : amount.toFixed(2)} USDT`;
 }
 
 function formatRub(amount: number): string {
   return `${Math.round(amount).toLocaleString('ru-RU')} ₽`;
+}
+
+function formatNominalAmount(amount: number, currency?: VioletCatalogOffer['currency']): string {
+  if (currency === 'RUB') return formatRub(amount);
+  if (currency) return `${amount.toLocaleString('ru-RU')} ${currency}`;
+  return formatUsdt(amount);
+}
+
+function formatOfferNominal(offer: VioletCatalogOffer, product: Product): string {
+  return formatNominalAmount(offer.nominal, offer.currency ?? product.nominalCurrency);
 }
 
 function maskIdentifier(value: string): string {
@@ -359,6 +402,127 @@ function maskIdentifier(value: string): string {
 
 function calculateClientPrice(amount: number, categoryId: CategoryId): number {
   return Number((amount * (1 + getCategoryMarkupRate(categoryId))).toFixed(2));
+}
+
+function isAppStoreProduct(product: Product): boolean {
+  return Boolean(product.nominalCurrency);
+}
+
+function resolveProductOffers(product: Product, meta: VioletCatalogItem | null): VioletCatalogOffer[] {
+  if (isAppStoreProduct(product)) return meta?.offers ?? [];
+  const denominations = meta?.denominations.length ? meta.denominations : product.denominations;
+  return denominations.map((nominal) => ({
+    cardId: null,
+    nominal,
+    name: null,
+  }));
+}
+
+function getProductCatalogState(product: Product, meta: VioletCatalogItem | null): string {
+  if (isAppStoreProduct(product)) {
+    if (!meta) return 'Нет данных FazerCards';
+    return meta.offers?.length ? `${meta.offers.length} вариантов` : 'Нет номиналов';
+  }
+  return meta ? 'Актуально' : 'Резерв';
+}
+
+function getProductBadge(product: Product, meta: VioletCatalogItem | null): string {
+  if (product.id === 'apple-tr') return 'Регион: TR';
+  if (product.id === 'apple-us') return 'Регион: US';
+  if (product.id === 'apple-ru') return 'Регион: RU';
+  if (product.id === 'apple-idr') return 'Регион: ID';
+  if (meta?.available === false) return 'Нет в наличии';
+  return formatCategoryLabel(product.category);
+}
+
+function getOfferKey(offer: VioletCatalogOffer): string {
+  return offer.cardId ?? `${offer.nominal}:${offer.currency ?? ''}`;
+}
+
+function isSameOffer(left: VioletCatalogOffer | null, right: VioletCatalogOffer): boolean {
+  return Boolean(left && getOfferKey(left) === getOfferKey(right));
+}
+
+function getPopularOffers(product: Product, offers: VioletCatalogOffer[]): VioletCatalogOffer[] {
+  if (!isAppStoreProduct(product)) return offers;
+  const popularNominals = APP_STORE_POPULAR_NOMINALS[product.id] ?? [];
+  const picked = popularNominals
+    .map((nominal) => offers.find((offer) => offer.nominal === nominal))
+    .filter((offer): offer is VioletCatalogOffer => Boolean(offer));
+
+  if (picked.length >= 4) return picked;
+
+  const pickedKeys = new Set(picked.map(getOfferKey));
+  const ranked = offers
+    .filter((offer) => !pickedKeys.has(getOfferKey(offer)))
+    .map((offer) => ({
+      offer,
+      distance: Math.min(...popularNominals.map((nominal) => Math.abs(offer.nominal - nominal))),
+    }))
+    .sort((a, b) => a.distance - b.distance || a.offer.nominal - b.offer.nominal)
+    .map(({ offer }) => offer);
+
+  return [...picked, ...ranked].slice(0, 6).sort((a, b) => a.nominal - b.nominal);
+}
+
+function getDefaultOffer(product: Product, offers: VioletCatalogOffer[]): VioletCatalogOffer | null {
+  if (!isAppStoreProduct(product)) return offers[0] ?? null;
+  return getPopularOffers(product, offers)[0] ?? offers[0] ?? null;
+}
+
+function resolveOrderFlow(product: Product, meta: VioletCatalogItem | null): OrderFlow {
+  return meta?.orderFlow ?? product.orderFlow;
+}
+
+function getRequiredOrderFields(orderFlow: OrderFlow, meta: VioletCatalogItem | null): OrderFieldKey[] {
+  if (meta?.requiredFields?.length) return meta.requiredFields;
+  if (orderFlow === 'steam_balance') return ['steamLogin'];
+  if (orderFlow === 'telegram_stars' || orderFlow === 'telegram_premium') return ['telegramUsername'];
+  if (orderFlow === 'game_balance') return ['playerId'];
+  return [];
+}
+
+function normalizeTelegramUsername(value: string): string {
+  const trimmed = value.trim().replace(/^@+/, '');
+  return trimmed ? `@${trimmed}` : '';
+}
+
+function getOrderFlowTitle(orderFlow: OrderFlow): string {
+  const labels: Record<OrderFlow, string> = {
+    code_delivery: 'Как вы получите код',
+    steam_balance: 'Пополнение Steam',
+    telegram_stars: 'Telegram Stars',
+    telegram_premium: 'Telegram Premium',
+    game_balance: 'Игровое пополнение',
+  };
+  return labels[orderFlow];
+}
+
+function getOrderFlowHint(orderFlow: OrderFlow): string {
+  const hints: Record<OrderFlow, string> = {
+    code_delivery: 'После оплаты код появится прямо здесь, на экране заказа. Скопируйте код и активируйте его в своём аккаунте.',
+    steam_balance: 'Пополнение будет зачислено на указанный аккаунт Steam. Проверьте логин перед оплатой.',
+    telegram_stars: 'Stars будут начислены на указанный аккаунт Telegram. Укажите username без ошибок.',
+    telegram_premium: 'Premium будет оформлен на указанный аккаунт Telegram. Проверьте username перед оплатой.',
+    game_balance: 'Пополнение будет зачислено на указанный игровой аккаунт. Проверьте ID и регион перед оплатой.',
+  };
+  return hints[orderFlow];
+}
+
+function getDeliverySummary(orderFlow: OrderFlow): string {
+  const summaries: Record<OrderFlow, string> = {
+    code_delivery: 'код будет показан в приложении после оплаты',
+    steam_balance: 'пополнение на аккаунт Steam',
+    telegram_stars: 'Stars на указанный Telegram аккаунт',
+    telegram_premium: 'Premium на указанный Telegram аккаунт',
+    game_balance: 'пополнение игрового аккаунта',
+  };
+  return summaries[orderFlow];
+}
+
+function isOrderFieldFilled(field: OrderFieldKey, orderFields: OrderFields): boolean {
+  if (field === 'telegramUsername') return normalizeTelegramUsername(orderFields.telegramUsername).length > 1;
+  return orderFields[field].trim().length > 0;
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
@@ -384,8 +548,9 @@ export function App() {
   const [appIdInput, setAppIdInput] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<CategoryId>('gift-cards');
   const [selectedProductId, setSelectedProductId] = useState('apple-tr');
-  const [selectedDenomination, setSelectedDenomination] = useState(5);
-  const [recipient, setRecipient] = useState('');
+  const [selectedOffer, setSelectedOffer] = useState<VioletCatalogOffer | null>(null);
+  const [showAllDenominations, setShowAllDenominations] = useState(false);
+  const [orderFields, setOrderFields] = useState<OrderFields>(EMPTY_ORDER_FIELDS);
   const [orderStatus, setOrderStatus] = useState<OrderStatus>('idle');
   const [violetCatalog, setVioletCatalog] = useState<Record<string, VioletCatalogItem>>({});
   const [catalogLoading, setCatalogLoading] = useState(false);
@@ -601,13 +766,32 @@ export function App() {
     [selectedProductId, visibleProducts],
   );
   const selectedProductMeta = violetCatalog[selectedProduct.id] ?? null;
-  const selectedProductDenominations =
-    selectedProductMeta?.denominations.length ? selectedProductMeta.denominations : selectedProduct.denominations;
+  const selectedProductOffers = useMemo(
+    () => resolveProductOffers(selectedProduct, selectedProductMeta),
+    [selectedProduct, selectedProductMeta],
+  );
+  const visibleSelectedOffers = useMemo(
+    () =>
+      showAllDenominations || !isAppStoreProduct(selectedProduct)
+        ? selectedProductOffers
+        : getPopularOffers(selectedProduct, selectedProductOffers),
+    [selectedProduct, selectedProductOffers, showAllDenominations],
+  );
 
-  const supplierPrice = selectedDenomination;
-  const clientPrice = calculateClientPrice(supplierPrice, selectedCategory);
-  const clientPriceRub = clientPrice * USDT_RATE_RUB;
-  const canContinue = recipient.trim().length > 0 && selectedProduct !== null;
+  const clientPrice =
+    selectedOffer === null
+      ? null
+      : selectedProduct.nominalCurrency
+        ? selectedOffer.priceUsdt ?? null
+        : calculateClientPrice(selectedOffer.nominal, selectedCategory);
+  const clientPriceRub =
+    selectedOffer?.priceRubApprox ?? (clientPrice === null ? null : Math.round(clientPrice * ANTARCTIC_USDT_RATE_RUB));
+  const selectedOrderFlow = resolveOrderFlow(selectedProduct, selectedProductMeta);
+  const requiredOrderFields = getRequiredOrderFields(selectedOrderFlow, selectedProductMeta);
+  const canContinue =
+    selectedProduct !== null &&
+    clientPrice !== null &&
+    requiredOrderFields.every((field) => isOrderFieldFilled(field, orderFields));
   const walletSessionSummary = useMemo(() => {
     if (sdkError) return sdkError;
     if (!session) return 'Ожидаем подключение кошелька';
@@ -622,19 +806,28 @@ export function App() {
   function selectCategory(categoryId: CategoryId) {
     const firstProduct = PRODUCTS.find((product) => product.category === categoryId);
     if (!firstProduct) return;
+    const meta = violetCatalog[firstProduct.id] ?? null;
+    const offers = resolveProductOffers(firstProduct, meta);
     setSelectedCategory(categoryId);
     setSelectedProductId(firstProduct.id);
-    setSelectedDenomination(firstProduct.denominations[0]);
-    setRecipient('');
+    setSelectedOffer(getDefaultOffer(firstProduct, offers));
+    setShowAllDenominations(false);
+    setOrderFields(EMPTY_ORDER_FIELDS);
     setOrderStatus('idle');
   }
 
   function selectProduct(product: Product) {
     const meta = violetCatalog[product.id] ?? null;
-    const denominations = meta?.denominations.length ? meta.denominations : product.denominations;
+    const offers = resolveProductOffers(product, meta);
     setSelectedProductId(product.id);
-    setSelectedDenomination(denominations[0]);
-    setRecipient('');
+    setSelectedOffer(getDefaultOffer(product, offers));
+    setShowAllDenominations(false);
+    setOrderFields(EMPTY_ORDER_FIELDS);
+    setOrderStatus('idle');
+  }
+
+  function updateOrderField(field: OrderFieldKey, value: string) {
+    setOrderFields((prev) => ({ ...prev, [field]: value }));
     setOrderStatus('idle');
   }
 
@@ -646,19 +839,21 @@ export function App() {
   useEffect(() => {
     if (visibleProducts.length === 0) return;
     if (visibleProducts.some((product) => product.id === selectedProductId)) return;
+    const firstProduct = visibleProducts[0];
+    const meta = violetCatalog[firstProduct.id] ?? null;
+    const offers = resolveProductOffers(firstProduct, meta);
     setSelectedProductId(visibleProducts[0].id);
-    setSelectedDenomination(
-      violetCatalog[visibleProducts[0].id]?.denominations[0] ?? visibleProducts[0].denominations[0],
-    );
-    setRecipient('');
+    setSelectedOffer(getDefaultOffer(firstProduct, offers));
+    setShowAllDenominations(false);
+    setOrderFields(EMPTY_ORDER_FIELDS);
     setOrderStatus('idle');
   }, [selectedProductId, violetCatalog, visibleProducts]);
 
   useEffect(() => {
-    if (selectedProductDenominations.includes(selectedDenomination)) return;
-    setSelectedDenomination(selectedProductDenominations[0]);
+    if (selectedProductOffers.some((offer) => isSameOffer(selectedOffer, offer))) return;
+    setSelectedOffer(getDefaultOffer(selectedProduct, selectedProductOffers));
     setOrderStatus('idle');
-  }, [selectedDenomination, selectedProductDenominations]);
+  }, [selectedOffer, selectedProduct, selectedProductOffers]);
 
   if (!appId && !insideWallet) {
     return (
@@ -764,7 +959,8 @@ export function App() {
           <div className="product-grid">
             {visibleProducts.map((product) => {
               const meta = violetCatalog[product.id] ?? null;
-              const denominations = meta?.denominations.length ? meta.denominations : product.denominations;
+              const offers = resolveProductOffers(product, meta);
+              const firstOffer = offers[0] ?? null;
               return (
                 <button
                   key={product.id}
@@ -775,11 +971,13 @@ export function App() {
                   onClick={() => selectProduct(product)}
                 >
                   <span className="product-card__shine" />
-                  <span className="product-card__name">{meta?.name ?? product.name}</span>
-                  <span className="product-card__description">{meta?.note ?? product.description}</span>
+                  <span className="product-card__name">{product.name}</span>
+                  <span className="product-card__description">{product.description}</span>
                   <span className="product-card__footer">
-                    <span>от {formatUsdt(denominations[0])}</span>
-                    <span>{meta ? 'Актуально' : 'Резерв'}</span>
+                    <span>
+                      {firstOffer ? `от ${formatOfferNominal(firstOffer, product)}` : 'номиналы недоступны'}
+                    </span>
+                    <span>{getProductCatalogState(product, meta)}</span>
                   </span>
                 </button>
               );
@@ -796,50 +994,141 @@ export function App() {
           <div className={`selected-product -${selectedProduct.accent}`}>
             <div>
               <span className="selected-product__label">Выбранный товар</span>
-              <strong>{selectedProductMeta?.name ?? selectedProduct.name}</strong>
+              <strong>{selectedProduct.name}</strong>
             </div>
             <span className="selected-product__pill">
-              {selectedProductMeta?.externalId ?? formatCategoryLabel(selectedCategory)}
+              {getProductBadge(selectedProduct, selectedProductMeta)}
             </span>
           </div>
 
-          <label className="field-label">Номинал</label>
+          <label className="field-label">Выберите номинал</label>
           <div className="denomination-grid">
-            {selectedProductDenominations.map((amount) => (
-              <button
-                key={amount}
-                className={`denomination ${selectedDenomination === amount ? '-active' : ''}`}
-                type="button"
-                onClick={() => {
-                  setSelectedDenomination(amount);
-                  setOrderStatus('idle');
-                }}
-              >
-                {formatUsdt(amount)}
-              </button>
-            ))}
+            {visibleSelectedOffers.length > 0 ? (
+              visibleSelectedOffers.map((offer) => (
+                <button
+                  key={getOfferKey(offer)}
+                  className={`denomination ${isSameOffer(selectedOffer, offer) ? '-active' : ''}`}
+                  type="button"
+                  onClick={() => {
+                    setSelectedOffer(offer);
+                    setOrderStatus('idle');
+                  }}
+                >
+                  {formatOfferNominal(offer, selectedProduct)}
+                </button>
+              ))
+            ) : (
+              <div className="denomination-empty">
+                Номиналы временно недоступны. Попробуйте позже.
+              </div>
+            )}
+          </div>
+          {isAppStoreProduct(selectedProduct) && selectedProductOffers.length > visibleSelectedOffers.length && (
+            <button
+              className="btn-link denomination-toggle"
+              type="button"
+              onClick={() => setShowAllDenominations(true)}
+            >
+              Показать все номиналы
+            </button>
+          )}
+          {isAppStoreProduct(selectedProduct) && showAllDenominations && selectedProductOffers.length > 6 && (
+            <button
+              className="btn-link denomination-toggle"
+              type="button"
+              onClick={() => setShowAllDenominations(false)}
+            >
+              Скрыть номиналы
+            </button>
+          )}
+
+          <div className="delivery-box">
+            <span className="delivery-box__title">{getOrderFlowTitle(selectedOrderFlow)}</span>
+            <p>{getOrderFlowHint(selectedOrderFlow)}</p>
           </div>
 
-          <label className="field-label" htmlFor="recipient">
-            {selectedProduct.inputLabel}
-          </label>
-          <input
-            id="recipient"
-            className="input"
-            type="text"
-            placeholder={selectedProduct.inputPlaceholder}
-            value={recipient}
-            onChange={(e) => {
-              setRecipient(e.target.value);
-              setOrderStatus('idle');
-            }}
-          />
+          {selectedOrderFlow === 'steam_balance' && (
+            <>
+              <label className="field-label" htmlFor="steam-login">
+                Steam логин
+              </label>
+              <input
+                id="steam-login"
+                className="input"
+                type="text"
+                placeholder="Введите логин Steam"
+                value={orderFields.steamLogin}
+                onChange={(e) => updateOrderField('steamLogin', e.target.value)}
+              />
+            </>
+          )}
+
+          {(selectedOrderFlow === 'telegram_stars' || selectedOrderFlow === 'telegram_premium') && (
+            <>
+              <label className="field-label" htmlFor="telegram-username">
+                Username Telegram
+              </label>
+              <input
+                id="telegram-username"
+                className="input"
+                type="text"
+                placeholder="@username"
+                value={orderFields.telegramUsername}
+                onChange={(e) => updateOrderField('telegramUsername', e.target.value)}
+              />
+            </>
+          )}
+
+          {selectedOrderFlow === 'game_balance' && (
+            <>
+              <label className="field-label" htmlFor="player-id">
+                ID игрока / UID
+              </label>
+              <input
+                id="player-id"
+                className="input"
+                type="text"
+                placeholder="Введите ID игрока"
+                value={orderFields.playerId}
+                onChange={(e) => updateOrderField('playerId', e.target.value)}
+              />
+              {requiredOrderFields.includes('serverRegion') && (
+                <>
+                  <label className="field-label" htmlFor="server-region">
+                    Сервер / регион
+                  </label>
+                  <input
+                    id="server-region"
+                    className="input"
+                    type="text"
+                    placeholder="Введите сервер или регион"
+                    value={orderFields.serverRegion}
+                    onChange={(e) => updateOrderField('serverRegion', e.target.value)}
+                  />
+                </>
+              )}
+            </>
+          )}
 
           <div className="total-box">
             <span className="total-box__label">Итого к оплате</span>
-            <strong className="total-box__amount">{formatUsdt(clientPrice)}</strong>
-            <span className="total-box__rub">≈ {formatRub(clientPriceRub)}</span>
-            <span className="total-box__note">Сервисный сбор включён</span>
+            <span className="total-box__nominal">
+              Номинал: {selectedOffer ? formatOfferNominal(selectedOffer, selectedProduct) : 'не выбран'}
+            </span>
+            <strong className="total-box__amount">
+              {clientPrice === null ? 'нет номинала' : `К оплате: ${formatUsdt(clientPrice)}`}
+            </strong>
+            <span className="total-box__rub">
+              {clientPriceRub === null ? 'Ожидаем реальные данные FazerCards' : `≈ ${formatRub(clientPriceRub)}`}
+            </span>
+            <span className="total-box__note">
+              {selectedProduct.nominalCurrency
+                ? 'Курс Antarctic: 1 USDT = 77.95 RUB, наценка 30%'
+                : 'Сервисный сбор включён'}
+            </span>
+            <span className="total-box__delivery">
+              Получение: {getDeliverySummary(selectedOrderFlow)}
+            </span>
           </div>
 
           <button className="btn -accent" type="button" disabled={!canContinue} onClick={previewOrder}>
@@ -847,7 +1136,26 @@ export function App() {
           </button>
 
           {orderStatus === 'preview' && (
-            <div className="success-note">Предпросмотр заказа готов. Оплата будет выполнена на следующем шаге.</div>
+            <div className="success-note">
+              <strong>Предпросмотр заказа готов</strong>
+              <span>Товар: {selectedProduct.name}</span>
+              <span>Вариант: {selectedOffer ? formatOfferNominal(selectedOffer, selectedProduct) : 'не выбран'}</span>
+              <span>К оплате: {clientPrice === null ? 'нет номинала' : formatUsdt(clientPrice)}</span>
+              <span>Получение: {getDeliverySummary(selectedOrderFlow)}</span>
+              {selectedOrderFlow === 'steam_balance' && (
+                <span>Steam логин: {orderFields.steamLogin.trim()}</span>
+              )}
+              {(selectedOrderFlow === 'telegram_stars' || selectedOrderFlow === 'telegram_premium') && (
+                <span>Telegram: {normalizeTelegramUsername(orderFields.telegramUsername)}</span>
+              )}
+              {selectedOrderFlow === 'game_balance' && (
+                <span>ID игрока: {orderFields.playerId.trim()}</span>
+              )}
+              {selectedOrderFlow === 'game_balance' && orderFields.serverRegion.trim() && (
+                <span>Сервер / регион: {orderFields.serverRegion.trim()}</span>
+              )}
+              <small>Оплата будет выполнена на следующем шаге.</small>
+            </div>
           )}
         </aside>
       </main>
