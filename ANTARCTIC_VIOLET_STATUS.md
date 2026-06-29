@@ -2,6 +2,36 @@
 
 ## Итоги сессии 2026-06-28
 
+### Замена App Store Indonesia на App Store India
+
+- Через `railway run` с реальными `FAZERCARDS_API_BASE` и `FAZERCARDS_API_KEY` проверен полный FazerCards giftcards catalog:
+  - всего 568 категорий;
+  - пагинация: 200 + 200 + 168;
+  - `app_store_itunes_in` найден как `App Store & iTunes (IN)`.
+- Проверен `GET /api/v2/giftcards/cards?category_id=app_store_itunes_in`:
+  - HTTP 200;
+  - 13 offers;
+  - валюта номиналов: `INR`;
+  - реальные номиналы: `100`, `200`, `250`, `500`, `1000`, `1500`, `2000`, `2500`, `3000`, `4000`, `5000`, `7500`, `10000` INR.
+- App Store Indonesia заменён на App Store India:
+  - backend matcher: `app_store_itunes_id` -> `app_store_itunes_in`;
+  - productId: `apple-idr` -> `apple-in`;
+  - валюта: `IDR` -> `INR`;
+  - добавлен ручной курс `INR_RUB = 0.815631`;
+  - orderFlow остался `code_delivery`;
+  - endpoint покупки остался `/api/v2/giftcards/order`.
+- Frontend карточка обновлена:
+  - название: `App Store & iTunes (Индия)`;
+  - описание: `Подарочная карта App Store и iTunes для индийского аккаунта Apple. После оплаты код появится прямо здесь, в приложении.`;
+  - badge: `Регион: IN`;
+  - номиналы отображаются в `INR`;
+  - популярные номиналы взяты только из реальных FazerCards offers.
+- Локально проверено:
+  - `/api/fazercards/violet-catalog` отдаёт `apple-in`, `app_store_itunes_in`, 13 offers с `cardId`, `stock`, `priceUsdt`, `priceRubApprox`;
+  - Gift Card orderFlow остался `code_delivery`;
+  - frontend HTML открывается через backend static server;
+  - `npm run build --prefix examples/react` проходит успешно.
+
 ### Что сделано сегодня
 
 - Исправлено получение реальных App Store / iTunes offers из FazerCards:
@@ -11,7 +41,7 @@
     - `app_store_itunes_tr`;
     - `app_store_itunes_us`;
     - `app_store_itunes_ru`;
-    - `app_store_itunes_id`.
+    - `app_store_itunes_in`.
 - App Store offers нормализуются в backend в структуру с:
   - `cardId`;
   - `nominal`;
@@ -27,7 +57,7 @@
   - TR -> `TRY`;
   - US -> `USD`;
   - RU -> `RUB` / `₽`;
-  - ID -> `IDR`.
+  - IN -> `INR`.
 - Цена к оплате для App Store считается в `USDT` вручную:
   - `ANTARCTIC_USDT_RATE_RUB = 77.95`;
   - `APP_STORE_MARKUP_RATE = 0.30`;
@@ -35,7 +65,7 @@
     - `TRY_RUB = 1.65822`;
     - `USD_RUB = 77.0611`;
     - `RUB_RUB = 1`;
-    - `IDR_RUB = 0.00429501`;
+    - `INR_RUB = 0.815631`;
   - формула:
     - `baseRub = nominal * currencyToRub`;
     - `baseUsdt = baseRub / 77.95`;
@@ -349,7 +379,7 @@ POST https://app.antarcticwallet.com/api/v2/sdk/scopes -> HTTP 422
 - Apple TR
 - Apple US
 - Apple RU
-- Apple IDR
+- Apple India
 - Roblox Gift Card
 - PlayStation Gift Card
 - Xbox Gift Card

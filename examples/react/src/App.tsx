@@ -59,7 +59,7 @@ interface Product {
   name: string;
   description: string;
   denominations: number[];
-  nominalCurrency?: 'TRY' | 'USD' | 'RUB' | 'IDR';
+  nominalCurrency?: 'TRY' | 'USD' | 'RUB' | 'INR';
   orderFlow: OrderFlow;
   accent: string;
 }
@@ -85,7 +85,7 @@ interface VioletCatalogItem {
 interface VioletCatalogOffer {
   cardId: string | null;
   nominal: number;
-  currency?: 'TRY' | 'USD' | 'RUB' | 'IDR';
+  currency?: 'TRY' | 'USD' | 'RUB' | 'INR';
   name: string | null;
   rawPriceUsd?: string | number | null;
   stock?: number | null;
@@ -116,7 +116,7 @@ const APP_STORE_POPULAR_NOMINALS: Record<string, number[]> = {
   'apple-tr': [10, 50, 100, 250, 500, 1000],
   'apple-us': [5, 10, 25, 50, 100, 200],
   'apple-ru': [500, 1000, 2000, 3000, 5000, 8000],
-  'apple-idr': [150000, 250000, 500000, 1000000],
+  'apple-in': [100, 200, 500, 1000, 2000, 5000],
 };
 const EMPTY_ORDER_FIELDS: OrderFields = {
   steamLogin: '',
@@ -157,12 +157,12 @@ const PRODUCTS: Product[] = [
     accent: 'silver',
   },
   {
-    id: 'apple-idr',
+    id: 'apple-in',
     category: 'gift-cards',
-    name: 'App Store & iTunes ID',
-    description: 'Подарочная карта App Store и iTunes для индонезийского аккаунта Apple. Код можно сохранить и активировать позже.',
+    name: 'App Store & iTunes (Индия)',
+    description: 'Подарочная карта App Store и iTunes для индийского аккаунта Apple. После оплаты код появится прямо здесь, в приложении.',
     denominations: [],
-    nominalCurrency: 'IDR',
+    nominalCurrency: 'INR',
     orderFlow: 'code_delivery',
     accent: 'cyan',
   },
@@ -430,7 +430,7 @@ function getProductBadge(product: Product, meta: VioletCatalogItem | null): stri
   if (product.id === 'apple-tr') return 'Регион: TR';
   if (product.id === 'apple-us') return 'Регион: US';
   if (product.id === 'apple-ru') return 'Регион: RU';
-  if (product.id === 'apple-idr') return 'Регион: ID';
+  if (product.id === 'apple-in') return 'Регион: IN';
   if (meta?.available === false) return 'Нет в наличии';
   return formatCategoryLabel(product.category);
 }

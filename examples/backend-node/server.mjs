@@ -64,9 +64,9 @@ const VIOLET_PRODUCT_MATCHERS = [
     match: (item) => item.category_id === 'app_store_itunes_ru',
   },
   {
-    productId: 'apple-idr',
+    productId: 'apple-in',
     source: 'giftcards',
-    match: (item) => item.category_id === 'app_store_itunes_id',
+    match: (item) => item.category_id === 'app_store_itunes_in',
   },
   {
     productId: 'roblox-gift-card',
@@ -114,7 +114,7 @@ const APP_STORE_CATEGORY_CURRENCIES = {
   app_store_itunes_tr: 'TRY',
   app_store_itunes_us: 'USD',
   app_store_itunes_ru: 'RUB',
-  app_store_itunes_id: 'IDR',
+  app_store_itunes_in: 'INR',
 };
 const ANTARCTIC_USDT_RATE_RUB = 77.95;
 const APP_STORE_MARKUP_RATE = 0.3;
@@ -122,7 +122,7 @@ const APP_STORE_RUB_RATES = {
   TRY: 1.65822,
   USD: 77.0611,
   RUB: 1,
-  IDR: 0.00429501,
+  INR: 0.815631,
 };
 
 const ORDER_FLOW_BY_SOURCE = {
