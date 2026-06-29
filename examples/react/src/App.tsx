@@ -129,7 +129,7 @@ const PRODUCTS: Product[] = [
   {
     id: 'apple-tr',
     category: 'gift-cards',
-    name: 'App Store & iTunes TR',
+    name: 'App Store & iTunes (Турция)',
     description: 'Подарочная карта App Store и iTunes для турецкого аккаунта Apple. Код можно сохранить и активировать позже.',
     denominations: [],
     nominalCurrency: 'TRY',
@@ -139,7 +139,7 @@ const PRODUCTS: Product[] = [
   {
     id: 'apple-us',
     category: 'gift-cards',
-    name: 'App Store & iTunes US',
+    name: 'App Store & iTunes (США)',
     description: 'Подарочная карта App Store и iTunes для американского аккаунта Apple. Код можно сохранить и активировать позже.',
     denominations: [],
     nominalCurrency: 'USD',
@@ -149,7 +149,7 @@ const PRODUCTS: Product[] = [
   {
     id: 'apple-ru',
     category: 'gift-cards',
-    name: 'App Store & iTunes RU',
+    name: 'App Store & iTunes (Россия)',
     description: 'Подарочная карта App Store и iTunes для российского аккаунта Apple. Код можно сохранить и активировать позже.',
     denominations: [],
     nominalCurrency: 'RUB',

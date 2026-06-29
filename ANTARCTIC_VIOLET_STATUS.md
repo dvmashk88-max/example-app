@@ -2,6 +2,17 @@
 
 ## Итоги сессии 2026-06-28
 
+### Нормализация названий App Store регионов
+
+- Frontend App Store карточки приведены к единому виду:
+  - `App Store & iTunes (Турция)`;
+  - `App Store & iTunes (США)`;
+  - `App Store & iTunes (Россия)`;
+  - `App Store & iTunes (Индия)`.
+- Название используется единообразно на карточке товара, в блоке выбранного товара и в preview заказа через `selectedProduct.name`.
+- Не менялись `category_id`, `cardId`, `orderFlow`, FazerCards API, цены, номиналы и wallet SDK/payment flow.
+- Проверено локально: `npm run build` проходит, production bundle содержит все 4 русских названия без старых `TR/US/RU` вариантов.
+
 ### Замена App Store Indonesia на App Store India
 
 - Через `railway run` с реальными `FAZERCARDS_API_BASE` и `FAZERCARDS_API_KEY` проверен полный FazerCards giftcards catalog:
