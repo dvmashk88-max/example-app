@@ -118,8 +118,11 @@ const ANTARCTIC_USDT_RATE_RUB = 77.95;
 const APP_STORE_POPULAR_NOMINALS: Record<string, number[]> = {
   'apple-tr': [10, 50, 100, 250, 500, 1000],
   'apple-us': [5, 10, 25, 50, 100, 200],
-  'apple-ru': [500, 1000, 2000, 3000, 5000, 8000],
+  'apple-ru': [500, 1000, 2000, 3000],
   'apple-in': [100, 200, 500, 1000, 2000, 5000],
+};
+const APP_STORE_VISIBLE_NOMINALS: Record<string, number[]> = {
+  'apple-ru': [500, 1000, 2000, 3000],
 };
 const EMPTY_ORDER_FIELDS: OrderFields = {
   steamLogin: '',
@@ -424,10 +427,18 @@ function resolveProductOffers(product: Product, meta: VioletCatalogItem | null):
   }));
 }
 
+function getDisplayableProductOffers(product: Product, offers: VioletCatalogOffer[]): VioletCatalogOffer[] {
+  const visibleNominals = APP_STORE_VISIBLE_NOMINALS[product.id];
+  if (!visibleNominals) return offers;
+  const visibleNominalSet = new Set(visibleNominals);
+  return offers.filter((offer) => visibleNominalSet.has(offer.nominal));
+}
+
 function getProductCatalogState(product: Product, meta: VioletCatalogItem | null): string {
   if (isAppStoreProduct(product) || meta?.offers) {
     if (!meta) return 'Нет данных FazerCards';
-    return meta.offers?.length ? `${meta.offers.length} вариантов` : 'Нет номиналов';
+    const visibleOffers = getDisplayableProductOffers(product, meta.offers ?? []);
+    return visibleOffers.length ? `${visibleOffers.length} вариантов` : 'Нет номиналов';
   }
   return meta ? 'Актуально' : 'Резерв';
 }
@@ -776,12 +787,16 @@ export function App() {
     () => resolveProductOffers(selectedProduct, selectedProductMeta),
     [selectedProduct, selectedProductMeta],
   );
+  const displayableSelectedProductOffers = useMemo(
+    () => getDisplayableProductOffers(selectedProduct, selectedProductOffers),
+    [selectedProduct, selectedProductOffers],
+  );
   const visibleSelectedOffers = useMemo(
     () =>
       showAllDenominations || !isAppStoreProduct(selectedProduct)
-        ? selectedProductOffers
-        : getPopularOffers(selectedProduct, selectedProductOffers),
-    [selectedProduct, selectedProductOffers, showAllDenominations],
+        ? displayableSelectedProductOffers
+        : getPopularOffers(selectedProduct, displayableSelectedProductOffers),
+    [displayableSelectedProductOffers, selectedProduct, showAllDenominations],
   );
 
   const clientPrice =
@@ -854,10 +869,10 @@ export function App() {
   }, [selectedProductId, violetCatalog, visibleProducts]);
 
   useEffect(() => {
-    if (selectedProductOffers.some((offer) => isSameOffer(selectedOffer, offer))) return;
-    setSelectedOffer(getDefaultOffer(selectedProduct, selectedProductOffers));
+    if (displayableSelectedProductOffers.some((offer) => isSameOffer(selectedOffer, offer))) return;
+    setSelectedOffer(getDefaultOffer(selectedProduct, displayableSelectedProductOffers));
     setOrderStatus('idle');
-  }, [selectedOffer, selectedProduct, selectedProductOffers]);
+  }, [displayableSelectedProductOffers, selectedOffer, selectedProduct]);
 
   if (!appId && !insideWallet) {
     return (
@@ -1027,7 +1042,7 @@ export function App() {
               </div>
             )}
           </div>
-          {isAppStoreProduct(selectedProduct) && selectedProductOffers.length > visibleSelectedOffers.length && (
+          {isAppStoreProduct(selectedProduct) && displayableSelectedProductOffers.length > visibleSelectedOffers.length && (
             <button
               className="btn-link denomination-toggle"
               type="button"
@@ -1036,7 +1051,7 @@ export function App() {
               Показать все номиналы
             </button>
           )}
-          {isAppStoreProduct(selectedProduct) && showAllDenominations && selectedProductOffers.length > 6 && (
+          {isAppStoreProduct(selectedProduct) && showAllDenominations && displayableSelectedProductOffers.length > 6 && (
             <button
               className="btn-link denomination-toggle"
               type="button"

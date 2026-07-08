@@ -1,5 +1,40 @@
 # Antarctic Violet — Project Status
 
+## App Store RU storefront UI filter 2026-07-07
+
+### Что изменено
+
+- Для `App Store & iTunes (Россия)` скрыты из UI номиналы выше разрешённого витринного набора.
+- В интерфейсе отображаются только:
+  - `500 ₽`;
+  - `1000 ₽`;
+  - `2000 ₽`;
+  - `3000 ₽`.
+- `5000 ₽` и `8000 ₽` не отображаются пользователю.
+- Изменение находится только во frontend `examples/react/src/App.tsx`.
+- Backend, FazerCards API, pricing, каталог offers и расчёт цен не менялись.
+- Другие App Store регионы (`TR`, `US`, `IN`) и остальные продукты (`Steam`, `Telegram`, `Roblox`, `PlayStation`, `Xbox`, `PUBG`, `Free Fire`) не менялись.
+
+### Проверки
+
+- `npm run build` -> проходит.
+- Local production UI через Playwright:
+  - загружен `http://localhost:3351` из `examples/react/dist`;
+  - catalog response замокан полным RU набором `500`, `1000`, `2000`, `3000`, `5000`, `8000`;
+  - UI показал только `500 ₽`, `1 000 ₽`, `2 000 ₽`, `3 000 ₽`;
+  - кнопка `Показать все номиналы` для RU не отображалась.
+- Production backend catalog check:
+  - `GET https://example-app-production-e00d.up.railway.app/api/fazercards/violet-catalog`;
+  - `apple-ru.offers.length = 15`;
+  - backend продолжает отдавать полный набор, включая `5000` и `8000`;
+  - `raw.offersEndpoint = "/api/v2/giftcards/cards"`.
+
+### Commit и deployment
+
+- Code commit: pending.
+- Railway deployment ID: pending.
+- Production UI check: pending after deployment.
+
 ## PUBG / Free Fire read-only pricing fix 2026-07-07
 
 ### Что исправлено
