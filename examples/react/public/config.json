@@ -3,7 +3,7 @@
   "name": "Antarctic Violet",
   "shortDescription": "Digital goods storefront prototype",
   "description": "A premium mock storefront for Telegram, Steam, gift cards, and game top-ups inside Antarctic Wallet.",
-  "icon": "./icon.svg",
+  "icon": "/app-icon.svg",
   "category": "utilities",
   "requiredScopes": [
     "user.profile.read"

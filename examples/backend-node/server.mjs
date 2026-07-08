@@ -118,6 +118,7 @@ const APP_STORE_CATEGORY_CURRENCIES = {
 };
 const ANTARCTIC_USDT_RATE_RUB = 77.95;
 const APP_STORE_MARKUP_RATE = 0.3;
+const APP_STORE_RU_MARKUP_RATE = 0.6;
 const APP_STORE_RUB_RATES = {
   TRY: 1.65822,
   USD: 77.0611,
@@ -308,10 +309,11 @@ function parseGiftCardNominal(offer, expectedCurrency) {
 }
 
 function calculateAppStoreSalePrice(nominal, currency) {
-  // These are internal store sale prices calculated from manual FX rates and 30% markup. They are not market exchange rates.
+  // These are internal store sale prices calculated from manual FX rates and product-specific markup. They are not market exchange rates.
   const baseRub = nominal * APP_STORE_RUB_RATES[currency];
   const baseUsdt = baseRub / ANTARCTIC_USDT_RATE_RUB;
-  const priceUsdt = roundStorePriceUsdt(baseUsdt * (1 + APP_STORE_MARKUP_RATE));
+  const markupRate = currency === 'RUB' ? APP_STORE_RU_MARKUP_RATE : APP_STORE_MARKUP_RATE;
+  const priceUsdt = roundStorePriceUsdt(baseUsdt * (1 + markupRate));
   return {
     priceUsdt,
     priceRubApprox: Math.round(priceUsdt * ANTARCTIC_USDT_RATE_RUB),
@@ -577,6 +579,10 @@ app.post('/api/intents', express.json({ limit: '64kb' }), async (req, res) => {
 });
 
 if (STATIC_DIR) {
+  app.get('/app-icon.svg', (_req, res) => {
+    res.type('image/svg+xml').sendFile(path.resolve(STATIC_DIR, 'icon.svg'));
+  });
+
   app.get('/favicon.ico', (_req, res) => {
     res.type('image/svg+xml').sendFile(path.resolve(STATIC_DIR, 'icon.svg'));
   });
