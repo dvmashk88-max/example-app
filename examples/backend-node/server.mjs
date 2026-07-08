@@ -577,6 +577,10 @@ app.post('/api/intents', express.json({ limit: '64kb' }), async (req, res) => {
 });
 
 if (STATIC_DIR) {
+  app.get('/favicon.ico', (_req, res) => {
+    res.type('image/svg+xml').sendFile(path.resolve(STATIC_DIR, 'icon.svg'));
+  });
+
   app.get(/^\/antarctic-violet\/$/, (_req, res) => {
     res.redirect(301, '/antarctic-violet');
   });

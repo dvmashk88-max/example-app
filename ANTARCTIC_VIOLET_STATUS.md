@@ -1,5 +1,106 @@
 # Antarctic Violet — Project Status
 
+## Read-write аудит и тестирование 2026-07-07
+
+### Что проверено
+
+- Локально поднят production backend/static server:
+  - `STATIC_DIR=examples/react/dist PORT=3351 node examples/backend-node/server.mjs`;
+  - затем сервер перезапущен через `railway run` с реальными Railway env для FazerCards.
+- Проверены API:
+  - `GET /health` -> HTTP 200, `{"ok":true}`;
+  - `GET /config.json` -> HTTP 200, `AW_APP_ID` подтягивается из env, `requiredScopes=["user.profile.read"]`;
+  - `GET /api/fazercards/violet-catalog` -> HTTP 200 с реальным FazerCards catalog;
+  - `GET /favicon.ico` после исправления -> HTTP 200, `image/svg+xml`.
+- Проверен полный пользовательский сценарий через Playwright:
+  - загрузка витрины и синхронизация каталога;
+  - все категории: Apple / Gift Cards, Steam, Игры, Telegram;
+  - все карточки товаров;
+  - все формы orderFlow:
+    - Gift Cards / App Store -> без обязательного поля, показывается блок `Как вы получите код`;
+    - Steam -> поле `Steam логин`;
+    - Telegram Stars / Premium -> поле `Username Telegram`;
+    - Games -> поле `ID игрока / UID`;
+  - блокировка кнопки `Продолжить` для Steam, Telegram и Games до заполнения обязательного поля;
+  - preview заказа после нажатия `Продолжить`;
+  - отображение названий товаров, номиналов, валют, цен в USDT и примерных цен в ₽;
+  - раскрытие полного списка номиналов App Store;
+  - мобильная адаптивность на viewport `390x844`.
+- Проверены browser console и network:
+  - JavaScript ошибок не найдено;
+  - React warning не найдено;
+  - `pageerror` не найдено;
+  - failed network requests не найдено;
+  - HTTP responses `>=400` в Playwright-сценарии не найдено;
+  - битых изображений в сценарии не найдено.
+- Проверен production build:
+  - `npm run build` проходит успешно.
+
+### Проверка App Store цен, валют, номиналов и количества вариантов
+
+- `apple-tr` / `app_store_itunes_tr`:
+  - валюта: `TRY`;
+  - вариантов: 23;
+  - номиналы: `10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200, 250, 300, 400, 500, 600, 750, 799, 1000, 1250, 1500, 1750, 2000`;
+  - все цены `priceUsdt` и `priceRubApprox` совпали с текущей формулой расчёта.
+- `apple-us` / `app_store_itunes_us`:
+  - валюта: `USD`;
+  - вариантов: 29;
+  - номиналы: `2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 75, 80, 90, 100, 150, 200, 250, 300, 400, 500`;
+  - все цены `priceUsdt` и `priceRubApprox` совпали с текущей формулой расчёта.
+- `apple-ru` / `app_store_itunes_ru`:
+  - валюта: `RUB`;
+  - вариантов: 15;
+  - номиналы: `500, 600, 700, 800, 900, 1000, 1500, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000`;
+  - все цены `priceUsdt` и `priceRubApprox` совпали с текущей формулой расчёта.
+- `apple-in` / `app_store_itunes_in`:
+  - валюта: `INR`;
+  - вариантов: 13;
+  - номиналы: `100, 200, 250, 500, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 7500, 10000`;
+  - все цены `priceUsdt` и `priceRubApprox` совпали с текущей формулой расчёта.
+- `matchedIds` содержит 12 товаров:
+  - `apple-tr`;
+  - `apple-us`;
+  - `apple-ru`;
+  - `apple-in`;
+  - `roblox-gift-card`;
+  - `playstation-gift-card`;
+  - `xbox-gift-card`;
+  - `steam-top-up`;
+  - `pubg`;
+  - `free-fire`;
+  - `telegram-stars`;
+  - `telegram-premium`.
+
+### Что найдено
+
+- Критических проблем не обнаружено.
+- Найден один некритический дефект static backend:
+  - прямой запрос `GET /favicon.ico` возвращал HTTP 404;
+  - основной HTML уже ссылался на `/icon.svg`, поэтому в Playwright-сценарии отсутствующий favicon не ломал страницу, но совместимость с клиентами, которые автоматически запрашивают `/favicon.ico`, была неполной.
+- Первый запрос к FazerCards catalog во время аудита один раз вернул backend 502 из-за временного `ConnectTimeout` до `api.fzr.cards`; повторная проверка и минимальный Node `fetch` с теми же Railway env прошли успешно. Ошибок нормализации каталога или расчёта цен не найдено.
+
+### Что исправлено
+
+- В `examples/backend-node/server.mjs` добавлен route:
+  - `GET /favicon.ico`;
+  - отдаёт существующий `icon.svg` из `STATIC_DIR` с content-type `image/svg+xml`.
+- SDK Antarctic Wallet не менялся.
+- FazerCards API, endpoints, payloads и расчёт цен не менялись.
+- Новые функции не добавлялись.
+
+### Что осталось сделать
+
+- Реальный checkout/payment всё ещё не реализован.
+- Реальные FazerCards order endpoints всё ещё не вызываются:
+  - `POST /api/v2/giftcards/order`;
+  - `POST /api/v2/topups/order`;
+  - `POST /api/v2/telegram/stars/buy`;
+  - `POST /api/v2/telegram/premium/buy`;
+  - `POST /api/v2/steam-topup/order`;
+  - `POST /api/v2/gamekeys/order`.
+- Купленные коды/ключи всё ещё не сохраняются и не показываются, потому что реальная покупка не подключена.
+
 ## Итоги сессии 2026-06-28
 
 ### Нормализация названий App Store регионов
