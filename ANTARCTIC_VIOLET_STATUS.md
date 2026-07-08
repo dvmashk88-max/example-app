@@ -31,9 +31,13 @@
 
 ### Commit и deployment
 
-- Code commit: pending.
-- Railway deployment ID: pending.
-- Production UI check: pending after deployment.
+- Code commit: `9c32c3b3b29e1b30fc3b14e10f1649d83a827814` (`Hide high App Store RU denominations in UI`).
+- Railway deployment ID verified for code commit: `5cd8a8b1-5d13-4499-9dbe-713895ba5c89`.
+- Production UI check through Playwright:
+  - URL: `https://example-app-production-e00d.up.railway.app/?appId=ui-check&parentOrigin=https%3A%2F%2Flocalhost%3A3310`;
+  - real production catalog, no mock;
+  - displayed denominations: `500 ₽`, `1 000 ₽`, `2 000 ₽`, `3 000 ₽`;
+  - `Показать все номиналы` не отображается для RU.
 
 ## PUBG / Free Fire read-only pricing fix 2026-07-07
 
