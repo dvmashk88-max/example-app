@@ -378,6 +378,30 @@ function normalizePricedOffer(categoryId, offer, options = {}) {
   };
 }
 
+function normalizeTopupOffer(categoryId, offer, index) {
+  const purchasePriceUsd = resolvePurchasePriceUsd(offer);
+  if (purchasePriceUsd === null) {
+    console.warn('[fazercards] topup offer skipped because purchase price is invalid', {
+      categoryId,
+      offerId: offer.offer_id ?? offer.id ?? null,
+      name: offer.name ?? null,
+      priceUsd: offer.price_usd ?? null,
+      price: offer.price ?? null,
+      cost: offer.cost ?? null,
+    });
+    return null;
+  }
+
+  return {
+    cardId: offer.offer_id ?? offer.id ?? null,
+    nominal: index + 1,
+    currency: undefined,
+    name: offer.name ?? offer.offer_id ?? null,
+    rawPriceUsd: offer.price_usd ?? purchasePriceUsd,
+    ...calculateSalePriceFromPurchaseUsd(purchasePriceUsd),
+  };
+}
+
 async function fetchGiftCardOffers(categoryId) {
   const payload = await fetchFazerCardsJson('/api/v2/giftcards/cards', { category_id: categoryId });
   const offers = Array.isArray(payload.offers) ? payload.offers : [];
@@ -388,8 +412,49 @@ async function fetchGiftCardOffers(categoryId) {
     .sort((a, b) => a.nominal - b.nominal);
 }
 
+function mapFazerCardsRequiredField(field) {
+  if (field?.key === 'player_id') return 'playerId';
+  if (field?.key === 'telegram_username') return 'telegramUsername';
+  if (field?.key === 'steamLogin' || field?.key === 'steam_login') return 'steamLogin';
+  if (field?.key === 'server_region') return 'serverRegion';
+  return null;
+}
+
+async function fetchTopupOfferPayload(categoryId) {
+  return fetchFazerCardsJson('/api/v2/topups/offers', { category_id: categoryId });
+}
+
 async function normalizeVioletCatalogItem(productId, source, item) {
   const normalized = normalizeCatalogItem(productId, source, item);
+  if (source === 'topups') {
+    const payload = await fetchTopupOfferPayload(item.category_id);
+    const offers = (Array.isArray(payload.offers) ? payload.offers : [])
+      .map((offer, index) => normalizeTopupOffer(item.category_id, offer, index))
+      .filter(Boolean);
+    const requiredFields = (Array.isArray(payload.fields) ? payload.fields : [])
+      .map(mapFazerCardsRequiredField)
+      .filter(Boolean);
+    if (offers.length === 0) {
+      console.warn('[fazercards] topup category has no priced offers; sale prices omitted', {
+        productId,
+        categoryId: item.category_id ?? null,
+        name: item.name ?? null,
+      });
+    }
+    return {
+      ...normalized,
+      requiredFields: requiredFields.length ? requiredFields : normalized.requiredFields,
+      note: payload.note ?? normalized.note,
+      offers,
+      denominations: offers.map((offer) => offer.nominal),
+      raw: {
+        ...normalized.raw,
+        fields: Array.isArray(payload.fields) ? payload.fields : [],
+        offersEndpoint: '/api/v2/topups/offers',
+      },
+    };
+  }
+
   if (source !== 'giftcards') {
     if (normalized.rawPriceUsd === null) {
       console.warn('[fazercards] catalog item has no purchase price; sale price omitted', {
