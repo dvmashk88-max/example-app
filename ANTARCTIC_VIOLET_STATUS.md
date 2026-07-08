@@ -1,5 +1,67 @@
 # Antarctic Violet — Project Status
 
+## Срочное исправление App Store pricing от FazerCards cost 2026-07-07
+
+### Старая ошибка
+
+- App Store / iTunes price считался от номинала карты и ручных курсов валют:
+  - `baseRub = nominal * manualCurrencyRate`;
+  - `baseUsdt = baseRub / ANTARCTIC_USDT_RATE_RUB`;
+  - затем применялся markup.
+- Это было неверно для всех App Store регионов:
+  - Turkey;
+  - USA;
+  - Russia;
+  - India.
+- Особенно заметно ошибка проявлялась на Apple RU:
+  - пример `1000 RUB` считался около `21 USDT` после предыдущего RU markup;
+  - при реальной закупочной цене FazerCards `30.72 USD` правильная цена должна быть `47 USDT`.
+
+### Новая логика
+
+- Для всех App Store / iTunes offers цена продажи считается только от реальной закупочной цены FazerCards:
+  - `purchasePriceUsd = Number(offer.price_usd)`;
+  - `priceUsdt = roundStorePriceUsdt(purchasePriceUsd * 1.50)`;
+  - `priceRubApprox = Math.round(priceUsdt * ANTARCTIC_USDT_RATE_RUB)`.
+- Markup:
+  - `APP_STORE_MARKUP_RATE = 0.50`.
+- Ручные курсы App Store удалены из backend pricing.
+- Отдельный `APP_STORE_RU_MARKUP_RATE` больше не используется.
+- Если у App Store offer нет валидного `price_usd`, offer пропускается и backend пишет warning.
+- Товары, номиналы, FazerCards API, payment flow и Antarctic Wallet SDK не менялись.
+
+### Apple RU цены после исправления
+
+- `600 RUB @ 16.97 USD` -> `26 USDT`.
+- `700 RUB @ 19.80 USD` -> `30 USDT`.
+- `800 RUB @ 22.62 USD` -> `34 USDT`.
+- `900 RUB @ 25.45 USD` -> `39 USDT`.
+- `1000 RUB @ 30.72 USD` -> `47 USDT`.
+- `1500 RUB @ 42.42 USD` -> `64 USDT`.
+
+### Проверки
+
+- `npm run build` -> проходит.
+- `npm run check:violet-ru-pricing` -> проходит и печатает контрольные Apple RU цены.
+- Local:
+  - `VIOLET_CATALOG_URL=http://localhost:3351/api/fazercards/violet-catalog npm run check:violet-ru-pricing`;
+  - `apple-tr: 23 offers match rawPriceUsd * 1.50`;
+  - `apple-us: 29 offers match rawPriceUsd * 1.50`;
+  - `apple-ru: 15 offers match rawPriceUsd * 1.50`;
+  - `apple-in: 13 offers match rawPriceUsd * 1.50`.
+- Production:
+  - `VIOLET_CATALOG_URL=https://example-app-production-e00d.up.railway.app/api/fazercards/violet-catalog npm run check:violet-ru-pricing`;
+  - `apple-tr: 23 offers match rawPriceUsd * 1.50`;
+  - `apple-us: 29 offers match rawPriceUsd * 1.50`;
+  - `apple-ru: 15 offers match rawPriceUsd * 1.50`;
+  - `apple-in: 13 offers match rawPriceUsd * 1.50`;
+  - Apple RU контрольные цены совпали с новой логикой.
+
+### Commit и deployment
+
+- Code commit: `ca38351` (`Price App Store offers from FazerCards cost`).
+- Railway deployment ID: `c7ff3196-a24c-4ddd-a9a9-eaf2b6ff1d69`.
+
 ## Исправление иконки и Apple RU pricing 2026-07-07
 
 ### Что было не так с иконкой
