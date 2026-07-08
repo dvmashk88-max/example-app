@@ -117,14 +117,7 @@ const APP_STORE_CATEGORY_CURRENCIES = {
   app_store_itunes_in: 'INR',
 };
 const ANTARCTIC_USDT_RATE_RUB = 77.95;
-const APP_STORE_MARKUP_RATE = 0.3;
-const APP_STORE_RU_MARKUP_RATE = 0.6;
-const APP_STORE_RUB_RATES = {
-  TRY: 1.65822,
-  USD: 77.0611,
-  RUB: 1,
-  INR: 0.815631,
-};
+const APP_STORE_MARKUP_RATE = 0.5;
 
 const ORDER_FLOW_BY_SOURCE = {
   giftcards: {
@@ -308,12 +301,8 @@ function parseGiftCardNominal(offer, expectedCurrency) {
   return { nominal, currency: expectedCurrency };
 }
 
-function calculateAppStoreSalePrice(nominal, currency) {
-  // These are internal store sale prices calculated from manual FX rates and product-specific markup. They are not market exchange rates.
-  const baseRub = nominal * APP_STORE_RUB_RATES[currency];
-  const baseUsdt = baseRub / ANTARCTIC_USDT_RATE_RUB;
-  const markupRate = currency === 'RUB' ? APP_STORE_RU_MARKUP_RATE : APP_STORE_MARKUP_RATE;
-  const priceUsdt = roundStorePriceUsdt(baseUsdt * (1 + markupRate));
+function calculateAppStoreSalePrice(purchasePriceUsd) {
+  const priceUsdt = roundStorePriceUsdt(purchasePriceUsd * (1 + APP_STORE_MARKUP_RATE));
   return {
     priceUsdt,
     priceRubApprox: Math.round(priceUsdt * ANTARCTIC_USDT_RATE_RUB),
@@ -343,13 +332,24 @@ function normalizeAppStoreOffer(categoryId, offer) {
     return null;
   }
 
-  const salePrice = calculateAppStoreSalePrice(parsed.nominal, parsed.currency);
+  const purchasePriceUsd = Number(offer.price_usd);
+  if (!Number.isFinite(purchasePriceUsd) || purchasePriceUsd <= 0) {
+    console.warn('[fazercards] App Store gift card offer skipped because price_usd is invalid', {
+      categoryId,
+      cardId: offer.card_id ?? offer.id ?? null,
+      name: offer.name ?? null,
+      priceUsd: offer.price_usd ?? null,
+    });
+    return null;
+  }
+
+  const salePrice = calculateAppStoreSalePrice(purchasePriceUsd);
   return {
     cardId: offer.card_id ?? offer.id ?? null,
     nominal: parsed.nominal,
     currency: parsed.currency,
     name: offer.name ?? null,
-    rawPriceUsd: offer.price_usd ?? null,
+    rawPriceUsd: offer.price_usd,
     stock: Number.isFinite(Number(offer.stock)) ? Number(offer.stock) : null,
     minOrderQuantity: Number.isFinite(Number(offer.min_order_quantity))
       ? Number(offer.min_order_quantity)
